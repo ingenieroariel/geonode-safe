@@ -1,7 +1,4 @@
-recursive-include risiko/templates *
-recursive-include risiko/media *
-recursive-include risiko/locale *
-recursive-include impact/static *
-recursive-include impact/fixtures *
-recursive-include impact/templates *
-recursive-include impact/locale *
+recursive-include geonode_safe/static *
+recursive-include geonode_safe/fixtures *
+recursive-include geonode_safe/templates *
+recursive-include geonode_safe/locale *
