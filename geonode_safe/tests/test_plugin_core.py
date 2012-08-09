@@ -1,5 +1,5 @@
 import unittest
-from impact import plugins
+from geonode_safe import plugins
 
 import numpy
 import sys
@@ -7,12 +7,12 @@ import os
 import unittest
 import warnings
 
-from impact.plugins.core import FunctionProvider
-from impact.plugins.core import requirements_collect
-from impact.plugins.core import requirement_check
-from impact.plugins.core import requirements_met
-from impact.plugins.core import get_plugins
-from impact.plugins.core import compatible_layers
+from geonode_safe.plugins.core import FunctionProvider
+from geonode_safe.plugins.core import requirements_collect
+from geonode_safe.plugins.core import requirement_check
+from geonode_safe.plugins.core import requirements_met
+from geonode_safe.plugins.core import get_plugins
+from geonode_safe.plugins.core import compatible_layers
 
 
 class BasicFunction(FunctionProvider):

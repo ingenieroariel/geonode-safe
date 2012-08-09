@@ -1,9 +1,9 @@
 import unittest
 import numpy
 
-from impact.engine.interpolation2d import interpolate2d, interpolate_raster
-from impact.tests.utilities import combine_coordinates
-from impact.storage.utilities import nanallclose
+from geonode_safe.engine.interpolation2d import interpolate2d, interpolate_raster
+from geonode_safe.tests.utilities import combine_coordinates
+from geonode_safe.storage.utilities import nanallclose
 
 
 def linear_function(x, y):

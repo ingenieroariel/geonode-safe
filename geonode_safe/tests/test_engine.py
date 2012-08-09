@@ -3,18 +3,18 @@ import numpy
 import sys
 import os
 
-from impact.engine.core import calculate_impact
-from impact.engine.interpolation2d import interpolate_raster
-from impact.storage.io import read_layer
+from geonode_safe.engine.core import calculate_impact
+from geonode_safe.engine.interpolation2d import interpolate_raster
+from geonode_safe.storage.io import read_layer
 
-from impact.storage.utilities import unique_filename
-from impact.storage.io import write_vector_data
-from impact.storage.io import write_raster_data
-from impact.plugins import get_plugins
+from geonode_safe.storage.utilities import unique_filename
+from geonode_safe.storage.io import write_vector_data
+from geonode_safe.storage.io import write_raster_data
+from geonode_safe.plugins import get_plugins
 
-from impact.tests.utilities import TESTDATA
-from impact.tests.plugins import empirical_fatality_model
-from impact.tests.plugins import NEXIS_building_impact_model
+from geonode_safe.tests.utilities import TESTDATA
+from geonode_safe.tests.plugins import empirical_fatality_model
+from geonode_safe.tests.plugins import NEXIS_building_impact_model
 
 
 def linear_function(x, y):
@@ -648,20 +648,6 @@ class Test_Engine(unittest.TestCase):
                 assert impact == 3
             else:
                 assert impact == 0
-
-    def test_package_metadata(self):
-        """Test that riab package loads
-        """
-
-        import impact
-
-        impact.VERSION
-        impact.__version__
-        impact.__author__
-        impact.__contact__
-        impact.__homepage__
-        impact.__docformat__
-        assert impact.__license__ == 'GPL'
 
     def test_interpolation_wrapper(self):
         """Interpolation library works for linear function

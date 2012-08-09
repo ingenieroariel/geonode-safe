@@ -5,32 +5,32 @@ import impact
 
 from osgeo import gdal
 
-from impact.storage.raster import Raster
-from impact.storage.vector import Vector
-from impact.storage.vector import convert_polygons_to_centroids
-from impact.storage.projection import Projection
-from impact.storage.projection import DEFAULT_PROJECTION
-from impact.storage.io import read_layer
-from impact.storage.io import write_vector_data
-from impact.storage.io import write_raster_data
-from impact.storage.utilities import unique_filename
-from impact.storage.utilities import write_keywords
-from impact.storage.utilities import read_keywords
-from impact.storage.utilities import bbox_intersection
-from impact.storage.utilities import minimal_bounding_box
-from impact.storage.utilities import buffered_bounding_box
-from impact.storage.utilities import array2wkt
-from impact.storage.utilities import calculate_polygon_area
-from impact.storage.utilities import calculate_polygon_centroid
-from impact.storage.utilities import geotransform2bbox
-from impact.storage.utilities import geotransform2resolution
-from impact.storage.utilities import nanallclose
-from impact.storage.io import get_bounding_box
-from impact.storage.io import bboxlist2string, bboxstring2list
-from impact.tests.utilities import same_API
-from impact.tests.utilities import TESTDATA
-from impact.tests.utilities import FEATURE_COUNTS
-from impact.tests.utilities import GEOTRANSFORMS
+from geonode_safe.storage.raster import Raster
+from geonode_safe.storage.vector import Vector
+from geonode_safe.storage.vector import convert_polygons_to_centroids
+from geonode_safe.storage.projection import Projection
+from geonode_safe.storage.projection import DEFAULT_PROJECTION
+from geonode_safe.storage.io import read_layer
+from geonode_safe.storage.io import write_vector_data
+from geonode_safe.storage.io import write_raster_data
+from geonode_safe.storage.utilities import unique_filename
+from geonode_safe.storage.utilities import write_keywords
+from geonode_safe.storage.utilities import read_keywords
+from geonode_safe.storage.utilities import bbox_intersection
+from geonode_safe.storage.utilities import minimal_bounding_box
+from geonode_safe.storage.utilities import buffered_bounding_box
+from geonode_safe.storage.utilities import array2wkt
+from geonode_safe.storage.utilities import calculate_polygon_area
+from geonode_safe.storage.utilities import calculate_polygon_centroid
+from geonode_safe.storage.utilities import geotransform2bbox
+from geonode_safe.storage.utilities import geotransform2resolution
+from geonode_safe.storage.utilities import nanallclose
+from geonode_safe.storage.io import get_bounding_box
+from geonode_safe.storage.io import bboxlist2string, bboxstring2list
+from geonode_safe.tests.utilities import same_API
+from geonode_safe.tests.utilities import TESTDATA
+from geonode_safe.tests.utilities import FEATURE_COUNTS
+from geonode_safe.tests.utilities import GEOTRANSFORMS
 
 
 # Auxiliary function for raster test

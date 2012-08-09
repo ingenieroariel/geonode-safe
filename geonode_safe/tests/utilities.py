@@ -1,16 +1,13 @@
-import os
 import time
 import types
 import numpy
 from django.conf import settings
-from impact.storage.io import download, get_bounding_box, get_metadata
-
-TESTDATA = os.path.join(os.environ['RIAB_HOME'], 'risiko_test_data')
+from urlparse import urljoin
 
 # Use the local GeoServer url inside GeoNode
 # The ows bit at the end if VERY important because
 # that is the endpoint of the OGC services.
-INTERNAL_SERVER_URL = os.path.join(settings.GEOSERVER_BASE_URL, 'ows')
+INTERNAL_SERVER_URL = urljoin(settings.GEOSERVER_BASE_URL, 'ows')
 
 # Known feature counts in test data
 FEATURE_COUNTS = {'lembang_schools.shp': 144,

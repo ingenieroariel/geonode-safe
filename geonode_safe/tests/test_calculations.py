@@ -10,19 +10,19 @@ from django.utils import simplejson as json
 
 from geonode.maps.utils import get_valid_user, check_geonode_is_up
 
-from impact.views import calculate
+from geonode_safe.views import calculate
 
-from impact.storage.io import save_to_geonode, check_layer
-from impact.storage.io import assert_bounding_box_matches
-from impact.storage.io import download
-from impact.storage.io import get_bounding_box
-from impact.storage.io import get_bounding_box_string
-from impact.storage.io import read_layer
-from impact.storage.io import get_metadata
+from geonode_safe.storage.io import save_to_geonode, check_layer
+from geonode_safe.storage.io import assert_bounding_box_matches
+from geonode_safe.storage.io import download
+from geonode_safe.storage.io import get_bounding_box
+from geonode_safe.storage.io import get_bounding_box_string
+from geonode_safe.storage.io import read_layer
+from geonode_safe.storage.io import get_metadata
 
-from impact.storage.utilities import nanallclose
+from geonode_safe.storage.utilities import nanallclose
 
-from impact.tests.utilities import TESTDATA, INTERNAL_SERVER_URL
+from geonode_safe.tests.utilities import TESTDATA, INTERNAL_SERVER_URL
 from owslib.wcs import WebCoverageService
 
 

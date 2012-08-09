@@ -1,8 +1,8 @@
 from geonode.maps.utils import upload, GeoNodeException
 from geonode.maps.models import Layer
-from impact.storage.utilities import unique_filename, LAYER_TYPES
-from impact.storage.io import get_bounding_box
-from impact.storage.io import download, get_metadata
+from geonode_safe.storage.utilities import unique_filename, LAYER_TYPES
+from geonode_safe.storage.io import get_bounding_box
+from geonode_safe.storage.io import download, get_metadata
 from django.conf import settings
 import os
 import time
@@ -10,14 +10,14 @@ import unittest
 import numpy
 import urllib2
 from geonode.maps.utils import get_valid_user
-from impact.storage.io import save_to_geonode, RisikoException
-from impact.storage.io import check_layer, assert_bounding_box_matches
-from impact.storage.io import get_bounding_box_string
-from impact.storage.io import bboxstring2list
-from impact.storage.utilities import nanallclose
-from impact.tests.utilities import TESTDATA, INTERNAL_SERVER_URL
-from impact.tests.utilities import get_web_page
-from impact.storage.io import read_layer
+from geonode_safe.storage.io import save_to_geonode, RisikoException
+from geonode_safe.storage.io import check_layer, assert_bounding_box_matches
+from geonode_safe.storage.io import get_bounding_box_string
+from geonode_safe.storage.io import bboxstring2list
+from geonode_safe.storage.utilities import nanallclose
+from geonode_safe.tests.utilities import TESTDATA, INTERNAL_SERVER_URL
+from geonode_safe.tests.utilities import get_web_page
+from geonode_safe.storage.io import read_layer
 
 #---Jeff
 from owslib.wcs import WebCoverageService
