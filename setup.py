@@ -18,11 +18,11 @@ setup(
     author_email='ingenieroariel@gmail.com',
     url='http://github.com/GFDRR/geonode-safe/',
     platforms=['any'],
-    license='BSD',
+    license='GPLv3',
     zip_safe=False,
     install_requires=[
         'python-safe>=0.5',       # pip install python-safe
-        'GeoNodePy',    # sudo apt-get install geonode
+        'GeoNodePy',              # sudo apt-get install geonode
     ],
     packages = ['geonode_safe',],
     package_data = {'geonode_safe': ['geonode_safe/templates/*', 'geonode_safe/locale']},
@@ -35,7 +35,6 @@ setup(
         'License :: OSI Approved :: GPL License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.5',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Topic :: Internet :: WWW/HTTP',
