@@ -22,7 +22,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'python-safe>=0.5',       # pip install python-safe
-        'GeoNodePy',              # sudo apt-get install geonode
+        'GeoNode',              # sudo apt-get install geonode
     ],
     packages = ['geonode_safe',],
     package_data = {'geonode_safe': ['geonode_safe/templates/*', 'geonode_safe/locale']},

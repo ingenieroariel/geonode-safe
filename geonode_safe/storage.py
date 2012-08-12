@@ -29,7 +29,7 @@ from safe.api import read_layer
 from owslib.wcs import WebCoverageService
 from owslib.wfs import WebFeatureService
 
-from geonode.maps.utils import file_upload, GeoNodeException
+from geonode.layers.utils import file_upload, GeoNodeException
 from django.conf import settings
 
 import logging

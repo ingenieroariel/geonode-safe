@@ -3,7 +3,8 @@ import types
 import numpy
 from django.conf import settings
 from urlparse import urljoin
-from safe.common.testing import UNITDATA as TESTDATA
+
+TESTDATA = '/home/ubuntu/inasafe-data'
 
 # Use the local GeoServer url inside GeoNode
 # The ows bit at the end if VERY important because

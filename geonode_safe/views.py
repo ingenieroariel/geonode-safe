@@ -39,7 +39,7 @@ from geonode_safe.utilities import get_common_resolution, get_bounding_boxes
 from safe.api import get_admissible_plugins, get_plugins
 from safe.api import calculate_impact
 
-from geonode.maps.utils import get_valid_user
+from geonode.layers.utils import get_valid_user
 
 from django.utils import simplejson as json
 from django.http import HttpResponse
