@@ -1,5 +1,5 @@
 __version__= (0, 1, 0, 'alpha', 0)
 
 def get_version():
-    import geonode.utils
-    return geonode.utils.get_version(__version__)
+    from safe.common.version import get_version
+    return get_version(__version__)
