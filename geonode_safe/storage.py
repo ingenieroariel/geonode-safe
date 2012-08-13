@@ -837,11 +837,6 @@ def save_file_to_geonode(filename, user=None, title=None,
                             keywords=keyword_list,
                             overwrite=overwrite)
 
-        # FIXME (Ole): This workaround should be revisited.
-        #              This fx means that keywords can't have spaces
-        #              Really need a generic way of getting this kind of
-        #              info in and out of GeoNode. See issue #148
-        layer.keywords = ' '.join(keyword_list)
         layer.save()
     except GeoNodeException, e:
         # Layer did not upload. Convert GeoNodeException to RisikoException

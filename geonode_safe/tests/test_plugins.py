@@ -10,7 +10,7 @@ import warnings
 from geonode_safe.views import calculate
 from geonode_safe.storage import get_layer_descriptors
 from geonode_safe.models import Calculation, Workspace
-from geonode_safe.tests.utilities import TESTDATA, INTERNAL_SERVER_URL
+from geonode_safe.tests.utilities import TESTDATA, DEMODATA, INTERNAL_SERVER_URL
 
 from geonode_safe.storage import save_to_geonode, check_layer
 from geonode_safe.storage import download
@@ -114,7 +114,7 @@ class Test_plugins(unittest.TestCase):
     def test_get_plugins(self):
         """It is possible to retrieve the list of functions
         """
-        plugin_list = plugins.get_plugins()
+        plugin_list = get_plugins()
         msg = ('No plugins were found, not even the built-in ones')
         assert len(plugin_list) > 0, msg
 
@@ -122,7 +122,7 @@ class Test_plugins(unittest.TestCase):
         """Named plugin can be retrieved
         """
         plugin_name = DEFAULT_PLUGINS[0]
-        plugin_list = plugins.get_plugins(plugin_name)
+        plugin_list = get_plugins(plugin_name)
         msg = ('No plugins were found matching %s' % plugin_name)
         assert len(plugin_list) > 0, msg
 
@@ -298,113 +298,109 @@ class Test_plugins(unittest.TestCase):
         """Padang building impact calculation works through the API
         """
 
-        # Test for a range of hazard layers
-        for mmi_filename in ['Shakemap_Padang_2009.asc']:
-                               #'Lembang_Earthquake_Scenario.asc']:
+        # Upload input data
+        hazardfile = os.path.join(DEMODATA, 'hazard', 'Shakemap_Padang_2009.asc')
+        hazard_layer = save_to_geonode(hazardfile, user=self.user)
+        hazard_name = '%s:%s' % (hazard_layer.workspace,
+                                       hazard_layer.name)
 
-            # Upload input data
-            hazardfile = os.path.join(TESTDATA, mmi_filename)
-            hazard_layer = save_to_geonode(hazardfile, user=self.user)
-            hazard_name = '%s:%s' % (hazard_layer.workspace,
-                                        hazard_layer.name)
-
-            exposurefile = os.path.join(TESTDATA, 'Padang_WGS84.shp')
-            exposure_layer = save_to_geonode(exposurefile, user=self.user)
-            exposure_name = '%s:%s' % (exposure_layer.workspace,
+        exposurefile = os.path.join(DEMODATA, 'exposure', 'Padang_WGS84.shp')
+        exposure_layer = save_to_geonode(exposurefile, user=self.user)
+        exposure_name = '%s:%s' % (exposure_layer.workspace,
                                           exposure_layer.name)
 
-            # Call calculation routine
+        # Call calculation routine
 
-            # FIXME (Ole): The system freaks out if there are spaces in
-            #              bbox string. Please let us catch that and deal
-            #              nicely with it - also do this in download()
-            bbox = '96.956, -5.51, 104.63933, 2.289497'
+        # FIXME (Ole): The system freaks out if there are spaces in
+        #              bbox string. Please let us catch that and deal
+        #              nicely with it - also do this in download()
+        bbox = '96.956, -5.51, 104.63933, 2.289497'
 
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
 
-                c = Client()
-                rv = c.post('/impact/api/calculate/', data=dict(
-                            hazard_server=INTERNAL_SERVER_URL,
-                            hazard=hazard_name,
-                            exposure_server=INTERNAL_SERVER_URL,
-                            exposure=exposure_name,
-                            bbox=bbox,
-                            impact_function='Padang Earthquake ' \
-                                            'Building Damage Function',
-                            keywords='test,buildings,padang',
-                            ))
+            c = Client()
+            rv = c.post('/impact/api/calculate/', data=dict(
+                        hazard_server=INTERNAL_SERVER_URL,
+                        hazard=hazard_name,
+                        exposure_server=INTERNAL_SERVER_URL,
+                        exposure=exposure_name,
+                        bbox=bbox,
+                        impact_function='Padang Earthquake ' \
+                                        'Building Damage Function',
+                        keywords='test,buildings,padang',
+                        ))
 
-                self.assertEqual(rv.status_code, 200)
-                self.assertEqual(rv['Content-Type'], 'application/json')
-                data = json.loads(rv.content)
-                assert 'hazard_layer' in data.keys()
-                assert 'exposure_layer' in data.keys()
-                assert 'run_duration' in data.keys()
-                assert 'run_date' in data.keys()
-                assert 'layer' in data.keys()
+            self.assertEqual(rv.status_code, 200)
+            self.assertEqual(rv['Content-Type'], 'application/json')
+            data = json.loads(rv.content)
+            assert 'hazard_layer' in data.keys()
+            assert 'exposure_layer' in data.keys()
+            assert 'run_duration' in data.keys()
+            assert 'run_date' in data.keys()
+            assert 'layer' in data.keys()
 
-                # Download result and check
-                layer_name = data['layer'].split('/')[-1]
+            # Download result and check
+            layer_name = data['layer'].split('/')[-1]
 
-                result_layer = download(INTERNAL_SERVER_URL,
-                                       layer_name,
-                                       bbox)
-                assert os.path.exists(result_layer.filename)
+            result_layer = download(INTERNAL_SERVER_URL,
+                                   layer_name,
+                                   bbox)
+            assert os.path.exists(result_layer.filename)
 
-                # Read hazard data for reference
-                hazard_raster = read_layer(hazardfile)
-                A = hazard_raster.get_data()
-                mmi_min, mmi_max = hazard_raster.get_extrema()
+            # Read hazard data for reference
+            hazard_raster = read_layer(hazardfile)
+            A = hazard_raster.get_data()
+            mmi_min, mmi_max = hazard_raster.get_extrema()
 
-                # Read calculated result
-                impact_vector = read_layer(result_layer.filename)
-                coordinates = impact_vector.get_geometry()
-                attributes = impact_vector.get_data()
+            # Read calculated result
+            impact_vector = read_layer(result_layer.filename)
+            coordinates = impact_vector.get_geometry()
+            attributes = impact_vector.get_data()
 
-                # Verify calculated result
-                count = 0
-                verified_count = 0
-                for i in range(len(attributes)):
-                    lon, lat = coordinates[i][:]
-                    calculated_mmi = attributes[i]['MMI']
+            # Verify calculated result
+            count = 0
+            verified_count = 0
+            for i in range(len(attributes)):
+                lon, lat = coordinates[i][:]
+                calculated_mmi = attributes[i]['MMI']
 
-                    if calculated_mmi == 0.0:
-                        # FIXME (Ole): Some points have MMI==0 here.
-                        # Weird but not a show stopper
-                        continue
+                if calculated_mmi == 0.0:
+                    # FIXME (Ole): Some points have MMI==0 here.
+                    # Weird but not a show stopper
+                    continue
 
-                    # Check that interpolated points are within range
-                    msg = ('Interpolated mmi %f was outside extrema: '
-                           '[%f, %f] at location '
-                           '[%f, %f]. ' % (calculated_mmi,
-                                           mmi_min, mmi_max,
-                                           lon, lat))
-                    assert mmi_min <= calculated_mmi <= mmi_max, msg
+                # Check that interpolated points are within range
+                msg = ('Interpolated mmi %f was outside extrema: '
+                       '[%f, %f] at location '
+                       '[%f, %f]. ' % (calculated_mmi,
+                                       mmi_min, mmi_max,
+                                       lon, lat))
+                assert mmi_min <= calculated_mmi <= mmi_max, msg
 
-                    building_class = attributes[i]['TestBLDGCl']
+                building_class = attributes[i]['TestBLDGCl']
 
-                    # Check calculated damage
-                    calculated_dam = attributes[i]['DAMAGE']
-                    verified_dam = padang_check_results(calculated_mmi,
+                # Check calculated damage
+                calculated_dam = attributes[i]['DAMAGE']
+                verified_dam = padang_check_results(calculated_mmi,
                                                         building_class)
-                    #print calculated_mmi, building_class, calculated_dam
-                    if verified_dam:
-                        msg = ('Calculated damage was not as expected '
-                                 'for hazard layer %s. I got %f '
-                               'but expected %f' % (hazardfile,
-                                                    calculated_dam,
-                                                    verified_dam))
-                        assert numpy.allclose(calculated_dam, verified_dam,
-                                               rtol=1.0e-4), msg
-                        verified_count += 1
-                    count += 1
+                #print calculated_mmi, building_class, calculated_dam
+                if verified_dam:
+                    msg = ('Calculated damage was not as expected '
+                           'for hazard layer %s. I got %f '
+                           'but expected %f' % (hazardfile,
+                                                calculated_dam,
+                                                verified_dam))
+                    assert numpy.allclose(calculated_dam, verified_dam,
+                                           rtol=1.0e-4), msg
+                    verified_count += 1
+                count += 1
 
-                msg = ('No points was verified in output. Please create '
-                       'table withe reference data')
-                assert verified_count > 0, msg
-                msg = 'Number buildings was not 3896.'
-                assert count == 3896, msg
+            msg = ('No points was verified in output. Please create '
+                   'table withe reference data')
+            assert verified_count > 0, msg
+            msg = 'Number buildings was not 3896.'
+            assert count == 3896, msg
 
 if __name__ == '__main__':
     os.environ['DJANGO_SETTINGS_MODULE'] = 'risiko.settings'

@@ -12,13 +12,13 @@ from geonode.layers.utils import get_valid_user, check_geonode_is_up
 
 from geonode_safe.views import calculate
 
-from geonode_safe.storage.io import save_to_geonode, check_layer
-from geonode_safe.storage.io import assert_bounding_box_matches
-from geonode_safe.storage.io import download
-from geonode_safe.storage.io import get_bounding_box
-from geonode_safe.storage.io import get_bounding_box_string
-from geonode_safe.storage.io import read_layer
-from geonode_safe.storage.io import get_metadata
+from geonode_safe.storage import save_to_geonode, check_layer
+from geonode_safe.storage import assert_bounding_box_matches
+from geonode_safe.storage import download
+from geonode_safe.storage import get_bounding_box
+from geonode_safe.storage import get_bounding_box_string
+from geonode_safe.storage import read_layer
+from geonode_safe.storage import get_metadata
 
 from geonode_safe.storage.utilities import nanallclose
 

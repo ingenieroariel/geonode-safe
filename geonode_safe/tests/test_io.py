@@ -30,7 +30,7 @@ from geonode_safe.storage import get_bounding_box
 from geonode_safe.storage import bboxlist2string, bboxstring2list
 
 from geonode_safe.tests.utilities import same_API
-from geonode_safe.tests.utilities import TESTDATA
+from geonode_safe.tests.utilities import TESTDATA, DEMODATA
 from geonode_safe.tests.utilities import FEATURE_COUNTS
 from geonode_safe.tests.utilities import GEOTRANSFORMS
 
@@ -74,7 +74,7 @@ class Test_IO(unittest.TestCase):
                            'OSM_building_polygons_20110905.shp',
                            'OSM_subset.shp']:
 
-            filename = '%s/%s' % (TESTDATA, vectorname)
+            filename = '%s/%s' % (DEMODATA, 'exposure', vectorname)
             layer = read_layer(filename)
             coords = layer.get_geometry()
             attributes = layer.get_data()
