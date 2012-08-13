@@ -19,8 +19,7 @@ from geonode_safe.storage import get_bounding_box
 from geonode_safe.storage import get_bounding_box_string
 from geonode_safe.storage import read_layer
 from geonode_safe.storage import get_metadata
-
-from geonode_safe.storage.utilities import nanallclose
+from geonode_safe.utilities import nanallclose
 
 from geonode_safe.tests.utilities import TESTDATA, INTERNAL_SERVER_URL
 from owslib.wcs import WebCoverageService
