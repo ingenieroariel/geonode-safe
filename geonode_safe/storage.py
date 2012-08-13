@@ -32,9 +32,6 @@ from owslib.wfs import WebFeatureService
 from geonode.layers.utils import file_upload, GeoNodeException
 from django.conf import settings
 
-import logging
-logger = logging.getLogger('risiko')
-
 INTERNAL_SERVER_URL = os.path.join(settings.GEOSERVER_BASE_URL, 'ows')
 
 def write_raster_data(data, projection, geotransform, filename, keywords=None):
@@ -575,16 +572,6 @@ class RisikoException(Exception):
     pass
 
 
-def console_log():
-    """Reconfigure logging to output to the console.
-    """
-
-    for _module in ["risiko"]:
-        _logger = logging.getLogger(_module)
-        _logger.addHandler(logging.StreamHandler())
-        _logger.setLevel(logging.INFO)
-
-
 def run(cmd, stdout=None, stderr=None):
     """Run command with stdout and stderr optionally redirected
 
@@ -839,8 +826,7 @@ def save_file_to_geonode(filename, user=None, title=None,
 
         layer.save()
     except GeoNodeException, e:
-        # Layer did not upload. Convert GeoNodeException to RisikoException
-        raise RisikoException(e)
+        raise
     else:
 
         #print
@@ -858,7 +844,7 @@ def save_file_to_geonode(filename, user=None, title=None,
 
         if not check_metadata:
             logmsg += ' Did not explicitly verify metadata.'
-            logger.info(logmsg)
+            #logger.info(logmsg)
             return layer
         else:
             # Check metadata and return layer object
@@ -876,7 +862,7 @@ def save_file_to_geonode(filename, user=None, title=None,
                     ok = True
                     break
             if ok:
-                logger.info(logmsg)
+                #logger.info(logmsg)
                 return layer
             else:
                 msg = ('Could not confirm that layer %s was uploaded '
@@ -926,19 +912,13 @@ def save_directory_to_geonode(directory,
 
             # Attempt upload only if extension is recognised
             if extension in LAYER_TYPES:
-                try:
-                    layer = save_to_geonode(filename,
+               layer = save_to_geonode(filename,
                                             user=user,
                                             title=title,
                                             overwrite=overwrite,
                                             check_metadata=check_metadata)
 
-                except Exception, e:
-                    msg = ('Filename "%s" could not be uploaded. '
-                           'Error was: %s' % (filename, str(e)))
-                    raise RisikoException(msg)
-                else:
-                    layers.append(layer)
+               layers.append(layer)
 
     # Return layers that successfully uploaded
     return layers

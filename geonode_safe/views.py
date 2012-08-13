@@ -48,9 +48,6 @@ from django.views.decorators.csrf import csrf_exempt
 
 from urlparse import urljoin
 
-import logging
-logger = logging.getLogger('risiko')
-
 
 def exception_format(e):
     """Convert an exception object into a string,
@@ -126,26 +123,26 @@ def calculate(request, save_output=save_to_geonode):
 
         # Start computation
         msg = 'Performing requested calculation'
-        logger.info(msg)
+        #logger.info(msg)
 
         # Download selected layer objects
         layers = []
         for server, layer_name, bbox in download_layers:
             msg = ('- Downloading layer %s from %s'
                    % (layer_name, server))
-            logger.info(msg)
+            #logger.info(msg)
             L = download(server, layer_name, bbox, raster_resolution)
             layers.append(L)
 
         # Calculate result using specified impact function
         msg = ('- Calculating impact using %s' % impact_function)
-        logger.info(msg)
+        #logger.info(msg)
         impact_filename = calculate_impact(layers=layers,
                                            impact_fcn=impact_function)
 
         # Upload result to internal GeoServer
         msg = ('- Uploading impact layer %s' % impact_filename)
-        logger.info(msg)
+        #logger.info(msg)
         result = save_output(impact_filename,
                              title='output_%s' % start.isoformat(),
                              user=theuser)
@@ -156,7 +153,7 @@ def calculate(request, save_output=save_to_geonode):
         # e.g. in get_metadata_from_layer. Things will silently fail.
         # See issue #170
 
-        logger.error(e)
+        #logger.error(e)
         errors = e.__str__()
         trace = exception_format(e)
         calculation.errors = errors
@@ -166,7 +163,7 @@ def calculate(request, save_output=save_to_geonode):
         return HttpResponse(jsondata, mimetype='application/json')
 
     msg = ('- Result available at %s.' % result.get_absolute_url())
-    logger.info(msg)
+    #logger.info(msg)
 
     calculation.layer = urljoin(settings.SITEURL, result.get_absolute_url())
     calculation.success = True

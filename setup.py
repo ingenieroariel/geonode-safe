@@ -21,8 +21,8 @@ setup(
     license='GPLv3',
     zip_safe=False,
     install_requires=[
-        'python-safe>=0.5',       # pip install python-safe
-        'GeoNode',              # sudo apt-get install geonode
+        'python-safe>=0.5.8',       # pip install python-safe
+        'GeoNode',                  # sudo apt-get install geonode
     ],
     packages = ['geonode_safe',],
     package_data = {'geonode_safe': ['geonode_safe/templates/*', 'geonode_safe/locale']},
