@@ -92,7 +92,7 @@ class TestGeoNode(unittest.TestCase):
     def test_tiff(self):
         """GeoTIF file can be uploaded
         """
-        thefile = os.path.join(UNITDATA, 'hazard', 'padang_tsunami_mw8.tif')
+        thefile = os.path.join(UNITDATA, 'hazard', 'jakarta_flood_design.tif')
         uploaded = save_to_geonode(thefile, user=self.user, overwrite=True)
         check_layer(uploaded, full=True)
 
@@ -165,7 +165,7 @@ class TestGeoNode(unittest.TestCase):
             f = open(keywords_file, 'r')
             keywords_list = []
             for line in f.readlines():
-                keywords_list.append(line.strip().replace(' ', ''))
+                keywords_list.append(unicode(line.strip()).replace(': ', ':'))
             f.close()
 
             # Verify that every keyword from file has been uploaded
@@ -182,8 +182,7 @@ class TestGeoNode(unittest.TestCase):
         # uploading twice and verifying metadata
 
         # Base test data
-        filenames = ['jakarta_flood_design.tif',
-                     'multipart_polygons_osm_4326.shp']
+        filenames = ['jakarta_flood_design.tif', ]
 
         for org_filename in filenames:
             org_basename, ext = os.path.splitext(os.path.join(UNITDATA, 'hazard',
@@ -256,10 +255,7 @@ class TestGeoNode(unittest.TestCase):
                 # Check keywords
                 if layer_type == 'raster':
                     category = 'hazard'
-                    subcategory = 'earthquake'
-                elif layer_type == 'vector':
-                    category = 'exposure'
-                    subcategory = 'building'
+                    subcategory = 'flood'
                 else:
                     msg = 'Unknown layer type %s' % layer_type
                     raise Exception(msg)
@@ -343,7 +339,7 @@ class TestGeoNode(unittest.TestCase):
             # Check keywords
             if layer_type == 'raster':
                 category = 'hazard'
-                subcategory = 'earthquake'
+                subcategory = 'flood'
             elif layer_type == 'vector':
                 category = 'exposure'
                 subcategory = 'building'
@@ -374,7 +370,7 @@ class TestGeoNode(unittest.TestCase):
         native resolution. This is one test for ticket #103
         """
 
-        hazard_filename = os.path.join(UNITDATA, 'hazard', 'padang_tsunami_mw8.tif')
+        hazard_filename = os.path.join(UNITDATA, 'hazard', 'jakarta_flood_design.tif')
 
         # Get reference values
         H = read_layer(hazard_filename)
@@ -439,7 +435,7 @@ class TestGeoNode(unittest.TestCase):
         We also check that the extrema of the subsampled matrix are sane
         """
 
-        hazard_filename = os.path.join(UNITDATA, 'hazard', 'padang_tsunami_mw8.tif')
+        hazard_filename = os.path.join(UNITDATA, 'hazard', 'jakarta_flood_design.tif')
 
         # Get reference values
         H = read_layer(hazard_filename)
@@ -455,23 +451,10 @@ class TestGeoNode(unittest.TestCase):
         for res in [0.02, 0.01, 0.005, 0.002, 0.001, 0.0005,  # Coarser
                     0.0002, 0.0001, 0.00006, 0.00003]:        # Finer
 
-            # To save time don't do finest resolution for the
-            # two population sets
-            if test_filename.startswith('Population') and res < 0.00006:
-                break
-
             # Set bounding box
             bbox = get_bounding_box_string(hazard_filename)
             compare_extrema = True
-            if test_filename == 'Population_2010.asc':
-                # Make bbox small for finer resolutions to
-                # save time and to test that as well.
-                # However, extrema obviously won't match those
-                # of the full dataset. Once we can clip
-                # datasets, we can remove this restriction.
-                if res < 0.005:
-                    bbox = '106.685974,-6.373421,106.974534,-6.079886'
-                    compare_extrema = False
+
             bb = bboxstring2list(bbox)
 
             # Download data at specified resolution
@@ -558,10 +541,9 @@ class TestGeoNode(unittest.TestCase):
         such as population per km^2
         """
 
-        for test_filename in ['Population_Jakarta_geographic.asc',
-                              'Population_2010.asc']:
+        for test_filename in ['jakarta_flood_design.tif']:
 
-            raster_filename = ('%s/%s' % (UNITDATA, test_filename))
+            raster_filename = os.path.join(UNITDATA, 'hazard', test_filename)
 
             # Get reference values
             R = read_layer(raster_filename)
@@ -576,11 +558,6 @@ class TestGeoNode(unittest.TestCase):
             # Test for a range of resolutions
             for res in [0.02, 0.01, 0.005, 0.002, 0.001, 0.0005,  # Coarser
                         0.0002]:                                  # Finer
-
-                # To save time don't do finest resolution for the
-                # large population set
-                if test_filename.startswith('Population_2010') and res < 0.005:
-                    break
 
                 bbox = get_bounding_box_string(raster_filename)
 
@@ -673,8 +650,8 @@ class TestGeoNode(unittest.TestCase):
         """
 
         # Upload test data
-        filenames = ['padang_tsunami_mw8.tif',
-                     'multipart_polygons_osm_4326.shp']
+        filenames = ['padang_tsunami_mw8.tif',]
+        filenames = ['jakarta_flood_design.tif',]
         layers = []
         paths = []
         for filename in filenames:
