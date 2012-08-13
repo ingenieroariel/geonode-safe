@@ -23,11 +23,11 @@ from geonode_safe.utilities import geotransform2bbox
 from geonode_safe.utilities import geotransform2resolution
 from geonode_safe.utilities import nanallclose
 
-from geonode_safe.io import read_layer
-from geonode_safe.io import write_vector_data
-from geonode_safe.io import write_raster_data
-from geonode_safe.io import get_bounding_box
-from geonode_safe.io import bboxlist2string, bboxstring2list
+from geonode_safe.storage import read_layer
+from geonode_safe.storage import write_vector_data
+from geonode_safe.storage import write_raster_data
+from geonode_safe.storage import get_bounding_box
+from geonode_safe.storage import bboxlist2string, bboxstring2list
 
 from geonode_safe.tests.utilities import same_API
 from geonode_safe.tests.utilities import TESTDATA

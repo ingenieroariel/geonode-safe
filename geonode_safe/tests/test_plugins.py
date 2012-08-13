@@ -1,5 +1,4 @@
 import unittest
-from geonode_safe import plugins
 
 import numpy
 import sys
@@ -7,7 +6,7 @@ import os
 import unittest
 import warnings
 
-from geonode.maps.utils import upload, file_upload, GeoNodeException
+from geonode.layers.utils import upload, file_upload, GeoNodeException
 
 from geonode_safe.views import calculate
 from geonode_safe.plugins.core import FunctionProvider
