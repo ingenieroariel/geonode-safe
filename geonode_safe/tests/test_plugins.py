@@ -6,29 +6,31 @@ import os
 import unittest
 import warnings
 
-from geonode.layers.utils import upload, file_upload, GeoNodeException
 
 from geonode_safe.views import calculate
-from geonode_safe.plugins.core import FunctionProvider
-from geonode_safe.plugins.core import requirements_collect
-from geonode_safe.plugins.core import requirement_check
-from geonode_safe.plugins.core import get_plugins
-from geonode_safe.plugins.core import compatible_layers
-
-from geonode_safe.storage.io import get_layer_descriptors
-
+from geonode_safe.storage import get_layer_descriptors
 from geonode_safe.models import Calculation, Workspace
+from geonode_safe.tests.utilities import TESTDATA, INTERNAL_SERVER_URL
 
-from geonode_safe.storage.io import save_to_geonode, check_layer
-from geonode_safe.storage.io import download
-from geonode_safe.storage.io import read_layer
+from geonode_safe.storage import save_to_geonode, check_layer
+from geonode_safe.storage import download
+from geonode_safe.storage import read_layer
 from geonode_safe.tests.utilities import TESTDATA
+
+from safe.impact_functions.core import FunctionProvider
+from safe.impact_functions.core import requirements_collect
+from safe.impact_functions.core import requirement_check
+from safe.impact_functions.core import get_plugins
+from safe.impact_functions.core import compatible_layers
+
+from geonode.layers.utils import get_valid_user
+from geonode.layers.utils import upload, file_upload, GeoNodeException
+
 from django.test.client import Client
 from django.conf import settings
 from django.utils import simplejson as json
-from geonode.maps.utils import get_valid_user
 
-from geonode_safe.tests.utilities import TESTDATA, INTERNAL_SERVER_URL
+
 
 DEFAULT_PLUGINS = ('Earthquake Fatality Function',)
 

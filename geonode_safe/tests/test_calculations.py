@@ -8,7 +8,7 @@ from django.test.client import Client
 from django.conf import settings
 from django.utils import simplejson as json
 
-from geonode.maps.utils import get_valid_user, check_geonode_is_up
+from geonode.layers.utils import get_valid_user, check_geonode_is_up
 
 from geonode_safe.views import calculate
 

@@ -5,6 +5,7 @@ from django.conf import settings
 from urlparse import urljoin
 
 TESTDATA = '/data/inasafe-data/test'
+DEMODATA = '/data/inasafe-data/'
 
 # Use the local GeoServer url inside GeoNode
 # The ows bit at the end if VERY important because

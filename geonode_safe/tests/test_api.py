@@ -4,15 +4,15 @@ from django.test.client import Client
 from django.utils import simplejson as json
 from django.conf import settings
 
-from geonode.maps.utils import check_geonode_is_up
-from geonode.maps.models import Layer
-from geonode.maps.utils import get_valid_user
+from geonode.layers.utils import check_geonode_is_up
+from geonode.layers.models import Layer
+from geonode.layers.utils import get_valid_user
 
-from safe.common.testing import UNITDATA
 from safe.engine.impact_functions_for_testing import unspecific_building_impact_model
 
 from geonode_safe.storage import save_to_geonode, check_layer
 from geonode_safe.tests.utilities import INTERNAL_SERVER_URL
+from geonode_safe.tests.utilities import TESTDATA, DEMODATA
 
 
 class Test_HTTP(unittest.TestCase):
