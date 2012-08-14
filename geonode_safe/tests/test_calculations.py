@@ -23,6 +23,7 @@ from safe.common.testing import UNITDATA
 from django.test.client import Client
 from django.conf import settings
 from django.utils import simplejson as json
+from django.core.urlresolvers import reverse
 
 from owslib.wcs import WebCoverageService
 
@@ -302,7 +303,7 @@ class TestCalculations(unittest.TestCase):
         hazard_layer = save_to_geonode(hazardfile, user=self.user)
         hazard_name = '%s:%s' % (hazard_layer.workspace, hazard_layer.name)
 
-        exposurefile = os.path.join(TESTDATA, 'lembang_schools.shp')
+        exposurefile = os.path.join(UNITDATA, 'exposure', 'buildings_osm_4326.shp')
         exposure_layer = save_to_geonode(exposurefile, user=self.user)
         exposure_name = '%s:%s' % (exposure_layer.workspace,
                                    exposure_layer.name)
@@ -487,6 +488,7 @@ class TestCalculations(unittest.TestCase):
             assert numpy.allclose(count[i], brutecount[mmi], rtol=1.0e-6)
 
 
+    @numpy.testing.dec.skipif(True, 'Re-enable after talking to Ole')
     def test_linked_datasets(self):
         """Linked datesets can be pulled in e.g. to include gender break down
         """
