@@ -880,11 +880,177 @@ def nanallclose(x, y, rtol=1.0e-5, atol=1.0e-8):
     # Compare non NaN's and return
     return numpy.allclose(x, y, rtol=rtol, atol=atol)
 
-def compatible_layers():
-    raise NotImplementedError()
+def get_common_resolution(haz_metadata, exp_metadata):
+    """Determine common resolution for raster layers
 
-def get_common_resolution():
-    raise NotImplementedError()
+    Input
+        haz_metadata: Metadata for hazard layer
+        exp_metadata: Metadata for exposure layer
 
-def get_bounding_boxes():
-    raise NotImplementedError()
+    Output
+        raster_resolution: Common resolution or None (in case of vector layers)
+    """
+
+    # Determine resolution in case of raster layers
+    haz_res = exp_res = None
+    if haz_metadata['layer_type'] == 'raster':
+        haz_res = haz_metadata['resolution']
+
+    if exp_metadata['layer_type'] == 'raster':
+        exp_res = exp_metadata['resolution']
+
+    # Determine common resolution in case of two raster layers
+    if haz_res is None or exp_res is None:
+        # This means native resolution will be used
+        raster_resolution = None
+    else:
+        # Take the minimum
+        resx = min(haz_res[0], exp_res[0])
+        resy = min(haz_res[1], exp_res[1])
+
+        raster_resolution = (resx, resy)
+
+    return raster_resolution
+
+
+def get_bounding_boxes(haz_metadata, exp_metadata, req_bbox):
+    """Check and get appropriate bounding boxes for input layers
+
+    Input
+        haz_metadata: Metadata for hazard layer
+        exp_metadata: Metadata for exposure layer
+        req_bbox: Bounding box (string as requested by HTML POST, or list)
+
+    Output
+        haz_bbox: Bounding box to be used for hazard layer.
+        exp_bbox: Bounding box to be used for exposure layer
+        imp_bbox: Bounding box to be used for resulting impact layer
+
+    Note exp_bbox and imp_bbox are the same and calculated as the
+         intersection among hazard, exposure and viewport bounds.
+         haz_bbox may be grown by one pixel size in case exposure data
+         is vector data to make sure points always can be interpolated
+    """
+
+    # Check requested bounding box and establish viewport bounding box
+    if isinstance(req_bbox, basestring):
+        check_bbox_string(req_bbox)
+        vpt_bbox = bboxstring2list(req_bbox)
+    elif is_sequence(req_bbox):
+        x = bboxlist2string(req_bbox)
+        check_bbox_string(x)
+        vpt_bbox = bboxstring2list(x)
+    else:
+        msg = ('Invalid bounding box %s (%s). '
+               'It must be a string or a list' % (str(req_bbox), type(req_bbox)))
+        raise Exception(msg)
+
+    # Get bounding boxes for layers
+    haz_bbox = haz_metadata['bounding_box']
+    exp_bbox = exp_metadata['bounding_box']
+
+    # New bounding box for data common to hazard, exposure and viewport
+    # Download only data within this intersection
+    intersection_bbox = bbox_intersection(vpt_bbox, haz_bbox, exp_bbox)
+    if intersection_bbox is None:
+        # Bounding boxes did not overlap
+        msg = ('Bounding boxes of hazard data [%s], exposure data [%s] '
+               'and viewport [%s] did not overlap, so no computation was '
+               'done. Please make sure you pan to where the data is and '
+               'that hazard and exposure data overlaps.'
+               % (bboxlist2string(haz_bbox, decimals=3),
+                  bboxlist2string(exp_bbox, decimals=3),
+                  bboxlist2string(vpt_bbox, decimals=3)))
+        logger.info(msg)
+        raise Exception(msg)
+
+    # Grow hazard bbox to buffer this common bbox in case where
+    # hazard is raster and exposure is vector
+    if (haz_metadata['layer_type'] == 'raster' and
+        exp_metadata['layer_type'] == 'vector'):
+
+        haz_res = haz_metadata['resolution']
+        haz_bbox = buffered_bounding_box(intersection_bbox, haz_res)
+    else:
+        haz_bbox = intersection_bbox
+
+    # Usually the intersection bbox is used for both exposure layer and result
+    exp_bbox = imp_bbox = intersection_bbox
+
+    return haz_bbox, exp_bbox, imp_bbox
+
+
+def get_linked_layers(main_layers):
+    """Get list of layers that are required by main layers
+
+    Input
+       main_layers: List of layers of the form (server, layer_name,
+                                                bbox, metadata)
+    Output
+       new_layers: New layers flagged by the linked keywords in main layers
+
+
+    Algorithm will recursively pull layers from new layers if their
+    keyword linked exists and points to available layers.
+    """
+
+    # FIXME: I don't think the naming is very robust.
+    # Main layer names and workspaces come from the app, while
+    # we just use the basename from the keywords for the linked layers.
+    # Not sure if the basename will always work as layer name.
+
+    new_layers = []
+    for server, name, bbox, metadata in main_layers:
+
+        workspace, layername = name.split(':')
+
+        keywords = metadata['keywords']
+        if 'linked' in keywords:
+            basename, _ = os.path.splitext(keywords['linked'])
+
+            # FIXME (Ole): Geoserver converts names to lowercase @#!!
+            basename = basename.lower()
+
+            new_layer = '%s:%s' % (workspace, basename)
+            if new_layer == name:
+                msg = 'Layer %s linked to itself' % name
+                raise Exception(msg)
+
+            try:
+                new_metadata = get_metadata(server, new_layer)
+            except Exception, e:
+                msg = ('Linked layer %s could not be found: %s'
+                       % (basename, str(e)))
+                logger.info(msg)
+                #raise Exception(msg)
+            else:
+                new_layers.append((server, new_layer, bbox, new_metadata))
+
+    # Recursively search for linked layers required by the newly added layers
+    if len(new_layers) > 0:
+        new_layers += get_linked_layers(new_layers)
+
+    # Return list of new layers
+    return new_layers
+
+
+def compatible_layers(func, layer_descriptors):
+    """Fetches all the layers that match the plugin requirements.
+
+    Input
+        func: ? (FIXME(Ole): Ted, can you fill in here?
+        layer_descriptor: Layer names and meta data (keywords, type, etc)
+
+    Output:
+        Array of compatible layers, can be an empty list.
+    """
+
+    layers = []
+    requirements = requirements_collect(func)
+
+    for layer_name, layer_params in layer_descriptors:
+        if requirements_met(requirements, layer_params):
+            layers.append(layer_name)
+
+    return layers
+
