@@ -401,9 +401,3 @@ class Test_plugins(unittest.TestCase):
             assert verified_count > 0, msg
             msg = 'Number buildings was not 3896.'
             assert count == 3896, msg
-
-if __name__ == '__main__':
-    os.environ['DJANGO_SETTINGS_MODULE'] = 'risiko.settings'
-    suite = unittest.makeSuite(Test_plugins, 'test')
-    runner = unittest.TextTestRunner(verbosity=2)
-    runner.run(suite)

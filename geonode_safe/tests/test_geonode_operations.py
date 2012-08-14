@@ -16,7 +16,7 @@ from geonode_safe.storage import download, get_metadata
 from geonode_safe.storage import read_layer
 from geonode_safe.utilities import unique_filename, LAYER_TYPES
 from geonode_safe.utilities import nanallclose
-from geonode_safe.tests.utilities import INTERNAL_SERVER_URL
+from geonode_safe.tests.utilities import TESTDATA, INTERNAL_SERVER_URL
 from geonode_safe.tests.utilities import get_web_page
 
 from safe.common.testing import UNITDATA
@@ -716,8 +716,264 @@ class TestGeoNode(unittest.TestCase):
             assert read_keywords == geo_keywords, msg
 
 
-if __name__ == '__main__':
-    os.environ['DJANGO_SETTINGS_MODULE'] = 'risiko.settings'
-    suite = unittest.makeSuite(TestGeoNode, 'test')
-    runner = unittest.TextTestRunner(verbosity=2)
-    runner.run(suite)
+    def test_metadata_available_after_upload(self):
+        """Test metadata is available after upload
+        """
+        # Upload hazard data for this test
+        name = 'jakarta_flood_design.tif'
+        exposure_filename = os.path.join(UNITDATA, 'hazard', name)
+        exposure_layer = save_to_geonode(exposure_filename,
+                                         user=self.user, overwrite=True)
+        layer_name = exposure_layer.typename
+        server_url = settings.GEOSERVER_BASE_URL + '/ows'
+        wcs = WebCoverageService(server_url, version='1.0.0')
+        layer_appears_immediately = layer_name in wcs.contents
+
+        wait_time = 0.5
+        time.sleep(wait_time)
+
+        wcs2 = WebCoverageService(server_url, version='1.0.0')
+        layer_appears_afterwards = layer_name in wcs2.contents
+
+        msg = ('Layer %s was not found after %s seconds in WxS contents '
+               'on server %s.\n'
+               'WCS contents: %s\n' % (layer_name,
+                                       wait_time,
+                                       server_url,
+                                       wcs.contents))
+
+        assert layer_appears_afterwards, msg
+
+        msg = ('Layer %s was not found in WxS contents on server %s.\n'
+               'WCS contents: %s\n' % (layer_name, server_url, wcs.contents))
+
+        assert layer_appears_immediately, msg
+
+
+    def test_geotransform_from_geonode(self):
+        """Geotransforms of GeoNode layers can be correctly determined
+        """
+
+        for filename in ['lembang_mmi_hazmap.asc',
+                         'test_grid.asc']:
+
+            # Upload file to GeoNode
+            f = os.path.join(TESTDATA, filename)
+            layer = save_to_geonode(f, user=self.user)
+
+            # Read raster file and obtain reference resolution
+            R = read_layer(f)
+            ref_geotransform = R.get_geotransform()
+
+            # Get geotransform from GeoNode
+            layer_name = layer.typename
+            metadata = get_metadata(INTERNAL_SERVER_URL, layer_name)
+
+            geotransform_name = 'geotransform'
+            msg = ('Could not find attribute "%s" in metadata. '
+                   'Values are: %s' % (geotransform_name, metadata.keys()))
+            assert geotransform_name in metadata, msg
+
+            gn_geotransform = metadata[geotransform_name]
+            msg = ('Geotransform obtained from GeoNode for layer %s '
+                   'was not correct. I got %s but expected %s'
+                   '' % (layer_name, gn_geotransform, ref_geotransform))
+            assert numpy.allclose(ref_geotransform, gn_geotransform), msg
+
+
+    def test_data_resampling_example(self):
+        """Raster data is unchanged when going through geonode
+
+        """
+
+        # Name file names for hazard level, exposure and expected fatalities
+        hazard_filename = os.path.join(TESTDATA, '..', 'hazard', 'maumere_aos_depth_20m_land_wgs84.asc')
+        exposure_filename = os.path.join(TESTDATA, 'maumere_pop_prj.shp')
+
+        #------------
+        # Hazard data
+        #------------
+        # Read hazard input data for reference
+        H_ref = read_layer(hazard_filename)
+
+        A_ref = H_ref.get_data()
+        depth_min_ref, depth_max_ref = H_ref.get_extrema()
+
+        # Upload to internal geonode
+        hazard_layer = save_to_geonode(hazard_filename, user=self.user)
+        hazard_name = '%s:%s' % (hazard_layer.workspace, hazard_layer.name)
+
+        # Download data again
+        bbox = get_bounding_box_string(hazard_filename)  # The biggest
+        H = download(INTERNAL_SERVER_URL, hazard_name, bbox)
+
+        A = H.get_data()
+        depth_min, depth_max = H.get_extrema()
+
+        # FIXME (Ole): The layer read from file is single precision only:
+        # Issue #17
+        # Here's the explanation why interpolation below produce slightly
+        # different results (but why?)
+        # The layer read from file is single precision which may be due to
+        # the way it is converted from ASC to TIF. In other words the
+        # problem may be in raster.write_to_file. Float64 is
+        # specified there, so this is a mystery.
+        #print 'A', A.dtype          # Double precision
+        #print 'A_ref', A_ref.dtype  # Single precision
+
+        # Compare extrema to values from numpy array
+        assert numpy.allclose(depth_max, numpy.nanmax(A),
+                              rtol=1.0e-12, atol=1.0e-12)
+
+        assert numpy.allclose(depth_max_ref, numpy.nanmax(A_ref),
+                              rtol=1.0e-12, atol=1.0e-12)
+
+        # Compare to reference
+        assert numpy.allclose([depth_min, depth_max],
+                              [depth_min_ref, depth_max_ref],
+                              rtol=1.0e-12, atol=1.0e-12)
+
+        # Compare extrema to values read off QGIS for this layer
+        assert numpy.allclose([depth_min, depth_max], [0.0, 16.68],
+                              rtol=1.0e-6, atol=1.0e-10)
+
+        # Investigate difference visually
+        #from matplotlib.pyplot import matshow, show
+        #matshow(A)
+        #matshow(A_ref)
+        #matshow(A - A_ref)
+        #show()
+
+        #print
+        for i in range(A.shape[0]):
+            for j in range(A.shape[1]):
+                if not numpy.isnan(A[i, j]):
+                    err = abs(A[i, j] - A_ref[i, j])
+                    if err > 0:
+                        msg = ('%i, %i: %.15f, %.15f, %.15f'
+                               % (i, j, A[i, j], A_ref[i, j], err))
+                        raise Exception(msg)
+                    #if A[i,j] > 16:
+                    #    print i, j, A[i, j], A_ref[i, j]
+
+        # Compare elements (nan & numbers)
+        id_nan = numpy.isnan(A)
+        id_nan_ref = numpy.isnan(A_ref)
+        assert numpy.all(id_nan == id_nan_ref)
+        assert numpy.allclose(A[-id_nan], A_ref[-id_nan],
+                              rtol=1.0e-15, atol=1.0e-15)
+
+        #print 'MAX', A[245, 283], A_ref[245, 283]
+        #print 'MAX: %.15f %.15f %.15f' %(A[245, 283], A_ref[245, 283])
+        assert numpy.allclose(A[245, 283], A_ref[245, 283],
+                              rtol=1.0e-15, atol=1.0e-15)
+
+        #--------------
+        # Exposure data
+        #--------------
+        # Read exposure input data for reference
+        E_ref = read_layer(exposure_filename)
+
+        # Upload to internal geonode
+        exposure_layer = save_to_geonode(exposure_filename, user=self.user)
+        exposure_name = '%s:%s' % (exposure_layer.workspace,
+                                   exposure_layer.name)
+
+        # Download data again
+        E = download(INTERNAL_SERVER_URL, exposure_name, bbox)
+
+        # Check exposure data against reference
+        coordinates = E.get_geometry()
+        coordinates_ref = E_ref.get_geometry()
+        assert numpy.allclose(coordinates, coordinates_ref,
+                              rtol=1.0e-12, atol=1.0e-12)
+
+        attributes = E.get_data()
+        attributes_ref = E_ref.get_data()
+        for i, att in enumerate(attributes):
+            att_ref = attributes_ref[i]
+            for key in att:
+                assert att[key] == att_ref[key]
+
+        # Test riab's interpolation function
+        I = H.interpolate(E, name='depth')
+        icoordinates = I.get_geometry()
+
+        I_ref = H_ref.interpolate(E_ref, name='depth')
+        icoordinates_ref = I_ref.get_geometry()
+
+        assert numpy.allclose(coordinates,
+                              icoordinates,
+                              rtol=1.0e-12, atol=1.0e-12)
+        assert numpy.allclose(coordinates,
+                              icoordinates_ref,
+                              rtol=1.0e-12, atol=1.0e-12)
+
+        iattributes = I.get_data()
+        assert numpy.allclose(icoordinates, coordinates)
+
+        N = len(icoordinates)
+        assert N == 891
+
+        # Set tolerance for single precision until issue #17 has been fixed
+        # It appears that the single precision leads to larger interpolation
+        # errors
+        rtol_issue17 = 2.0e-3
+        atol_issue17 = 1.0e-4
+
+        # Verify interpolated values with test result
+        for i in range(N):
+
+            interpolated_depth_ref = I_ref.get_data()[i]['depth']
+            interpolated_depth = iattributes[i]['depth']
+
+            assert nanallclose(interpolated_depth,
+                               interpolated_depth_ref,
+                               rtol=rtol_issue17, atol=atol_issue17)
+
+            pointid = attributes[i]['POINTID']
+
+            if pointid == 263:
+
+                #print i, pointid, attributes[i],
+                #print interpolated_depth, coordinates[i]
+
+                # Check that location is correct
+                assert numpy.allclose(coordinates[i],
+                                      [122.20367299, -8.61300358],
+                                      rtol=1.0e-7, atol=1.0e-12)
+
+                # This is known to be outside inundation area so should
+                # near zero
+                assert numpy.allclose(interpolated_depth, 0.0,
+                                      rtol=1.0e-12, atol=1.0e-12)
+
+            if pointid == 148:
+                # Check that location is correct
+                #print coordinates[i]
+                assert numpy.allclose(coordinates[i],
+                                      [122.2045912, -8.608483265],
+                                      rtol=1.0e-7, atol=1.0e-12)
+
+                # This is in an inundated area with a surrounding depths of
+                # 4.531, 3.911
+                # 2.675, 2.583
+                assert interpolated_depth < 4.531
+                assert interpolated_depth < 3.911
+                assert interpolated_depth > 2.583
+                assert interpolated_depth > 2.675
+
+                #print interpolated_depth
+                # This is a characterisation test for bilinear interpolation
+                assert numpy.allclose(interpolated_depth, 3.62477215491,
+                                      rtol=rtol_issue17, atol=1.0e-12)
+
+            # Check that interpolated points are within range
+            msg = ('Interpolated depth %f at point %i was outside extrema: '
+                   '[%f, %f]. ' % (interpolated_depth, i,
+                                   depth_min, depth_max))
+
+            if not numpy.isnan(interpolated_depth):
+                assert depth_min <= interpolated_depth <= depth_max, msg
+
+
