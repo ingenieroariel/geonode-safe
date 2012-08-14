@@ -4,10 +4,12 @@
 import os
 import copy
 import numpy
+import math
+
 from osgeo import ogr
 from tempfile import mkstemp
 from urllib2 import urlopen
-import math
+from safe.api import read_layer
 
 # Spatial layer file extensions that are recognised in Risiko
 # FIXME: Perhaps add '.gml', '.zip', ...
@@ -1053,4 +1055,138 @@ def compatible_layers(func, layer_descriptors):
             layers.append(layer_name)
 
     return layers
+
+
+def check_bbox_string(bbox_string):
+    """Check that bbox string is valid
+    """
+
+    msg = 'Expected bbox as a string with format "W,S,E,N"'
+    assert isinstance(bbox_string, basestring), msg
+
+    # Use checks from string to list conversion
+    # FIXME (Ole): Would be better to separate the checks from the conversion
+    # and use those checks directly.
+    minx, miny, maxx, maxy = bboxstring2list(bbox_string)
+
+    # Check semantic integrity
+    msg = ('Western border %.5f of bounding box %s was out of range '
+           'for longitudes ([-180:180])' % (minx, bbox_string))
+    assert -180 <= minx <= 180, msg
+
+    msg = ('Eastern border %.5f of bounding box %s was out of range '
+           'for longitudes ([-180:180])' % (maxx, bbox_string))
+    assert -180 <= maxx <= 180, msg
+
+    msg = ('Southern border %.5f of bounding box %s was out of range '
+           'for latitudes ([-90:90])' % (miny, bbox_string))
+    assert -90 <= miny <= 90, msg
+
+    msg = ('Northern border %.5f of bounding box %s was out of range '
+           'for latitudes ([-90:90])' % (maxy, bbox_string))
+    assert -90 <= maxy <= 90, msg
+
+    msg = ('Western border %.5f was greater than or equal to eastern border '
+           '%.5f of bounding box %s' % (minx, maxx, bbox_string))
+    assert minx < maxx, msg
+
+    msg = ('Southern border %.5f was greater than or equal to northern border '
+           '%.5f of bounding box %s' % (miny, maxy, bbox_string))
+    assert miny < maxy, msg
+
+
+def bboxstring2list(bbox_string):
+    """Convert bounding box string to list
+
+    Input
+        bbox_string: String of bounding box coordinates of the form 'W,S,E,N'
+    Output
+        bbox: List of floating point numbers with format [W, S, E, N]
+    """
+
+    msg = ('Bounding box must be a string with coordinates following the '
+           'format 105.592,-7.809,110.159,-5.647\n'
+           'Instead I got %s of type %s.' % (str(bbox_string),
+                                             type(bbox_string)))
+    assert isinstance(bbox_string, basestring), msg
+
+    fields = bbox_string.split(',')
+    msg = ('Bounding box string must have 4 coordinates in the form '
+           '"W,S,E,N". I got bbox == "%s"' % bbox_string)
+    assert len(fields) == 4, msg
+
+    for x in fields:
+        try:
+            float(x)
+        except ValueError, e:
+            msg = ('Bounding box %s contained non-numeric entry %s, '
+                   'original error was "%s".' % (bbox_string, x, e))
+            raise AssertionError(msg)
+
+    return [float(x) for x in fields]
+
+
+def get_bounding_box_string(filename):
+    """Get bounding box for specified raster or vector file
+
+    Input:
+        filename
+
+    Output:
+        bounding box as python string 'West, South, East, North'
+    """
+
+    return bboxlist2string(get_bounding_box(filename))
+
+
+def bboxlist2string(bbox, decimals=6):
+    """Convert bounding box list to comma separated string
+
+    Input
+        bbox: List of coordinates of the form [W, S, E, N]
+    Output
+        bbox_string: Format 'W,S,E,N' - each will have 6 decimal points
+    """
+
+    msg = 'Got string %s, but expected bounding box as a list' % str(bbox)
+    assert not isinstance(bbox, basestring), msg
+
+    try:
+        bbox = list(bbox)
+    except:
+        msg = 'Could not coerce bbox %s into a list' % str(bbox)
+        raise Exception(msg)
+
+    msg = ('Bounding box must have 4 coordinates [W, S, E, N]. '
+           'I got %s' % str(bbox))
+    assert len(bbox) == 4, msg
+
+    for x in bbox:
+        try:
+            float(x)
+        except ValueError, e:
+            msg = ('Bounding box %s contained non-numeric entry %s, '
+                   'original error was "%s".' % (bbox, x, e))
+            raise AssertionError(msg)
+
+    # Make template of the form '%.5f,%.5f,%.5f,%.5f'
+    template = (('%%.%if,' % decimals) * 4)[:-1]
+
+    # Assign numbers and return
+    return template % tuple(bbox)
+
+
+def get_bounding_box(filename):
+    """Get bounding box for specified raster or vector file
+
+    Input:
+        filename
+
+    Output:
+        bounding box as python list of numbers [West, South, East, North]
+    """
+
+    layer = read_layer(filename)
+    return layer.get_bounding_box()
+
 

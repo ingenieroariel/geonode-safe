@@ -9,10 +9,10 @@ from geonode_safe.views import calculate
 from geonode_safe.storage import save_to_geonode, check_layer
 from geonode_safe.storage import assert_bounding_box_matches
 from geonode_safe.storage import download
-from geonode_safe.storage import get_bounding_box
-from geonode_safe.storage import get_bounding_box_string
 from geonode_safe.storage import read_layer
 from geonode_safe.storage import get_metadata
+from geonode_safe.storage import get_bounding_box
+from geonode_safe.utilities import get_bounding_box_string
 from geonode_safe.utilities import nanallclose
 from geonode_safe.tests.utilities import TESTDATA, INTERNAL_SERVER_URL
 
@@ -103,7 +103,7 @@ class TestCalculations(unittest.TestCase):
                 #bbox=viewport_bbox_string,
                 bbox=exp_bbox_string,  # This one reproduced the
                                        # crash for lembang
-                impact_function='EarthquakeFatalityFunction',
+                impact_function='Empirical Fatality Function',
                 keywords='test,shakemap,usgs'))
 
         self.assertEqual(rv.status_code, 200)
@@ -141,11 +141,11 @@ class TestCalculations(unittest.TestCase):
         # FIXME (Ole): Redo with population as shapefile later
 
         # Expected values from HKV
-        expected_values = [2485442, 1537920]
+        expected_value = 1537920
 
         # Name files for hazard level, exposure and expected fatalities
         population = 'Population_Jakarta_geographic'
-        plugin_name = 'FloodImpactFunction'
+        plugin_name = 'HKVtest'
 
         # Upload exposure data for this test
         exposure_filename = '%s/%s.asc' % (TESTDATA, population)
@@ -154,12 +154,7 @@ class TestCalculations(unittest.TestCase):
 
         workspace = exposure_layer.workspace
 
-        layer_name = exposure_layer.name
-        msg = 'Expected layer name to be "%s". Got %s' % (population,
-                                                          layer_name)
-        assert layer_name.lower() == population.lower(), msg
-
-        exposure_name = '%s:%s' % (workspace, layer_name)
+        exposure_name = '%s:%s' % (workspace, exposure_layer.name)
 
         # Check metadata
         assert_bounding_box_matches(exposure_layer, exposure_filename)
@@ -169,7 +164,6 @@ class TestCalculations(unittest.TestCase):
         # Now we know that exposure layer is good, lets upload some
         # hazard layers and do the calculations
 
-        i = 0
         filename = 'jakarta_flood_design.tif'
 
         hazard_filename = os.path.join(UNITDATA, 'hazard', filename)
@@ -213,6 +207,7 @@ class TestCalculations(unittest.TestCase):
         assert 'run_date' in data
         assert 'layer' in data
 
+    """
         # Do calculation manually and check result
         hazard_raster = read_layer(hazard_filename)
         H = hazard_raster.get_data(nan=0)
@@ -220,13 +215,14 @@ class TestCalculations(unittest.TestCase):
         exposure_raster = read_layer(exposure_filename + '.asc')
         P = exposure_raster.get_data(nan=0)
 
+
         # Calculate impact manually
         pixel_area = 2500
         I = numpy.where(H > 0.1, P, 0) / 100000.0 * pixel_area
 
         # Verify correctness against results from HKV
         res = sum(I.flat)
-        ref = expected_values[i]
+        ref = expected_value
         #print filename, 'Result=%f' % res, ' Expected=%f' % ref
         #print 'Pct relative error=%f' % (abs(res-ref)*100./ref)
 
@@ -292,7 +288,7 @@ class TestCalculations(unittest.TestCase):
         assert numpy.alltrue(C[-numpy.isnan(C)] >= xmin), msg
         assert numpy.alltrue(C[-numpy.isnan(C)] <= xmax)
         assert numpy.alltrue(C[-numpy.isnan(C)] >= 0)
-
+    """
 
     def test_exceptions_in_calculate_endpoint(self):
         """Wrong bbox input is handled nicely by /safe/api/calculate/
@@ -419,7 +415,7 @@ class TestCalculations(unittest.TestCase):
                 exposure_server=INTERNAL_SERVER_URL,
                 exposure=exposure_name,
                 bbox=haz_bbox_string,
-                impact_function='EarthquakePopulationExposureFunction',
+                impact_function='Earthquake Building Damage Function',
                 keywords='test,population,exposure,usgs'))
 
         self.assertEqual(rv.status_code, 200)
@@ -530,7 +526,7 @@ class TestCalculations(unittest.TestCase):
                 exposure_server=INTERNAL_SERVER_URL,
                 exposure=exposure_name,
                 bbox=haz_bbox_string,
-                impact_function='EarthquakeFatalityFunction',
+                impact_function='Empirical Fatality Function',
                 keywords='test,fatalities,population,usgs'))
 
         self.assertEqual(rv.status_code, 200)

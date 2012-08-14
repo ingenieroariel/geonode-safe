@@ -29,14 +29,18 @@ import datetime
 
 from geonode_safe.storage import download
 from geonode_safe.storage import get_metadata, get_layer_descriptors
-from geonode_safe.storage import bboxlist2string
 from geonode_safe.storage import save_to_geonode
 from geonode_safe.models import Calculation, Workspace
+from geonode_safe.utilities import bboxlist2string
 from geonode_safe.utilities import titelize
 from geonode_safe.utilities import compatible_layers
 from geonode_safe.utilities import get_common_resolution, get_bounding_boxes
 
-from safe.api import get_admissible_plugins, get_plugins
+from safe.engine.impact_functions_for_testing import HKV_flood_study
+from safe.engine.impact_functions_for_testing import empirical_fatality_model
+from safe.engine.impact_functions_for_testing import unspecific_building_impact_model
+
+from safe.api import get_admissible_plugins
 from safe.api import calculate_impact
 
 from geonode.layers.utils import get_valid_user
@@ -113,7 +117,13 @@ def calculate(request, save_output=save_to_geonode):
         # Add linked layers if any FIXME: STILL TODO!
 
         # Get selected impact function
-        impact_function = get_plugin(impact_function_name)
+        plugins = get_admissible_plugins()
+
+        msg = ('Could not find "%s" in "%s"' % (
+                 impact_function_name, plugins.keys()))
+        assert impact_function_name in plugins, msg
+  
+        impact_function = plugins.get(impact_function_name)
         impact_function_source = inspect.getsource(impact_function)
 
         # Record information calculation object and save it
@@ -137,13 +147,14 @@ def calculate(request, save_output=save_to_geonode):
         # Calculate result using specified impact function
         msg = ('- Calculating impact using %s' % impact_function)
         #logger.info(msg)
-        impact_filename = calculate_impact(layers=layers,
+        impact_file = calculate_impact(layers=layers,
                                            impact_fcn=impact_function)
 
         # Upload result to internal GeoServer
-        msg = ('- Uploading impact layer %s' % impact_filename)
+        msg = ('- Uploading impact layer %s' % impact_file.name)
+
         #logger.info(msg)
-        result = save_output(impact_filename,
+        result = save_output(impact_file.filename,
                              title='output_%s' % start.isoformat(),
                              user=theuser)
     except Exception, e:
@@ -152,7 +163,6 @@ def calculate(request, save_output=save_to_geonode):
         # This is dangerous. Try to raise an exception
         # e.g. in get_metadata_from_layer. Things will silently fail.
         # See issue #170
-
         #logger.error(e)
         errors = e.__str__()
         trace = exception_format(e)
@@ -181,22 +191,20 @@ def calculate(request, save_output=save_to_geonode):
 
     # json.dumps does not like django users
     output['user'] = calculation.user.username
-    downloads = result.download_links()
-    keys = [x[0] for x in downloads]
-    values = [x[2] for x in downloads]
-    download_dict = dict(zip(keys, values))
-    if 'excel' in keys:
-        output['excel'] = download_dict['excel']
 
-    # Keywords do not like caption being there.
-    # FIXME: Do proper parsing, don't assume caption is the only keyword.
-    if 'caption' in result.keywords:
-        caption = result.keywords.split('caption:')[1]
-        # FIXME (Ole): Return underscores to spaces that was put in place
-        # to store it in the first place. See issue #148
-        output['caption'] = caption.replace('_', ' ')
-    else:
-        output['caption'] = 'Calculation finished ' \
+    links = result.link_set.all()
+
+    links_dict = {}
+
+    for item in links:
+        links_dict[item.name] = {'url': item.url, 
+                           'link_type': item.link_type,
+                           'extension': item.extension
+                          }
+
+    output['links'] = links_dict
+
+    output['caption'] = 'Calculation finished ' \
                             'in %s' % calculation.run_duration
 
     # Delete _state and _user_cache item from the dict,
@@ -215,7 +223,7 @@ def calculate(request, save_output=save_to_geonode):
 
 def debug(request):
     """Show a list of all the functions"""
-    plugin_list = get_plugins()
+    plugin_list = get_admissible_plugins()
 
     plugins_info = []
     for name, f in plugin_list.items():
@@ -247,7 +255,7 @@ def functions(request):
        assumes version 1.0.0
     """
 
-    plugin_list = get_plugins()
+    plugin_list = get_admissible_plugins()
 
     if 'geoservers' in request.GET:
         # FIXME for the moment assume version 1.0.0

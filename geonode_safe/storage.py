@@ -20,6 +20,9 @@ from geonode_safe.utilities import is_sequence
 from geonode_safe.utilities import unique_filename
 from geonode_safe.utilities import write_keywords
 from geonode_safe.utilities import geotransform2resolution
+from geonode_safe.utilities import get_bounding_box
+from geonode_safe.utilities import bboxlist2string
+from geonode_safe.utilities import check_bbox_string
 
 # Do we really need to import these objects? should they be part of the API?
 from safe.storage.vector import Vector
@@ -82,99 +85,6 @@ def write_vector_data(data, projection, geometry, filename, keywords=None):
     V.write_to_file(filename)
 
 
-def get_bounding_box(filename):
-    """Get bounding box for specified raster or vector file
-
-    Input:
-        filename
-
-    Output:
-        bounding box as python list of numbers [West, South, East, North]
-    """
-
-    layer = read_layer(filename)
-    return layer.get_bounding_box()
-
-
-def bboxlist2string(bbox, decimals=6):
-    """Convert bounding box list to comma separated string
-
-    Input
-        bbox: List of coordinates of the form [W, S, E, N]
-    Output
-        bbox_string: Format 'W,S,E,N' - each will have 6 decimal points
-    """
-
-    msg = 'Got string %s, but expected bounding box as a list' % str(bbox)
-    assert not isinstance(bbox, basestring), msg
-
-    try:
-        bbox = list(bbox)
-    except:
-        msg = 'Could not coerce bbox %s into a list' % str(bbox)
-        raise Exception(msg)
-
-    msg = ('Bounding box must have 4 coordinates [W, S, E, N]. '
-           'I got %s' % str(bbox))
-    assert len(bbox) == 4, msg
-
-    for x in bbox:
-        try:
-            float(x)
-        except ValueError, e:
-            msg = ('Bounding box %s contained non-numeric entry %s, '
-                   'original error was "%s".' % (bbox, x, e))
-            raise AssertionError(msg)
-
-    # Make template of the form '%.5f,%.5f,%.5f,%.5f'
-    template = (('%%.%if,' % decimals) * 4)[:-1]
-
-    # Assign numbers and return
-    return template % tuple(bbox)
-
-
-def bboxstring2list(bbox_string):
-    """Convert bounding box string to list
-
-    Input
-        bbox_string: String of bounding box coordinates of the form 'W,S,E,N'
-    Output
-        bbox: List of floating point numbers with format [W, S, E, N]
-    """
-
-    msg = ('Bounding box must be a string with coordinates following the '
-           'format 105.592,-7.809,110.159,-5.647\n'
-           'Instead I got %s of type %s.' % (str(bbox_string),
-                                             type(bbox_string)))
-    assert isinstance(bbox_string, basestring), msg
-
-    fields = bbox_string.split(',')
-    msg = ('Bounding box string must have 4 coordinates in the form '
-           '"W,S,E,N". I got bbox == "%s"' % bbox_string)
-    assert len(fields) == 4, msg
-
-    for x in fields:
-        try:
-            float(x)
-        except ValueError, e:
-            msg = ('Bounding box %s contained non-numeric entry %s, '
-                   'original error was "%s".' % (bbox_string, x, e))
-            raise AssertionError(msg)
-
-    return [float(x) for x in fields]
-
-
-def get_bounding_box_string(filename):
-    """Get bounding box for specified raster or vector file
-
-    Input:
-        filename
-
-    Output:
-        bounding box as python string 'West, South, East, North'
-    """
-
-    return bboxlist2string(get_bounding_box(filename))
 
 
 def get_geotransform(server_url, layer_name):
@@ -394,43 +304,6 @@ def get_file(download_url, suffix):
     filename = os.path.abspath(t.name)
     return filename
 
-
-def check_bbox_string(bbox_string):
-    """Check that bbox string is valid
-    """
-
-    msg = 'Expected bbox as a string with format "W,S,E,N"'
-    assert isinstance(bbox_string, basestring), msg
-
-    # Use checks from string to list conversion
-    # FIXME (Ole): Would be better to separate the checks from the conversion
-    # and use those checks directly.
-    minx, miny, maxx, maxy = bboxstring2list(bbox_string)
-
-    # Check semantic integrity
-    msg = ('Western border %.5f of bounding box %s was out of range '
-           'for longitudes ([-180:180])' % (minx, bbox_string))
-    assert -180 <= minx <= 180, msg
-
-    msg = ('Eastern border %.5f of bounding box %s was out of range '
-           'for longitudes ([-180:180])' % (maxx, bbox_string))
-    assert -180 <= maxx <= 180, msg
-
-    msg = ('Southern border %.5f of bounding box %s was out of range '
-           'for latitudes ([-90:90])' % (miny, bbox_string))
-    assert -90 <= miny <= 90, msg
-
-    msg = ('Northern border %.5f of bounding box %s was out of range '
-           'for latitudes ([-90:90])' % (maxy, bbox_string))
-    assert -90 <= maxy <= 90, msg
-
-    msg = ('Western border %.5f was greater than or equal to eastern border '
-           '%.5f of bounding box %s' % (minx, maxx, bbox_string))
-    assert minx < maxx, msg
-
-    msg = ('Southern border %.5f was greater than or equal to northern border '
-           '%.5f of bounding box %s' % (miny, maxy, bbox_string))
-    assert miny < maxy, msg
 
 
 def download(server_url, layer_name, bbox, resolution=None):
@@ -742,6 +615,7 @@ def save_file_to_geonode(filename, user=None, title=None,
     keyword_list = []
     keyword_file = basename + '.keywords'
     kw_title = None
+    kw_summary = None
     if os.path.exists(keyword_file):
         f = open(keyword_file, 'r')
         for line in f.readlines():
@@ -758,7 +632,12 @@ def save_file_to_geonode(filename, user=None, title=None,
             # Grab title if present
             if 'title' in keyword:
                 kw_title = keyword.split(':')[1]
-           
+                continue
+
+            if 'impact_summary' in keyword:
+                kw_summary = keyword.split(':')[1]
+                continue
+
             keyword_list.append(keyword)
         f.close()
 
@@ -807,6 +686,9 @@ def save_file_to_geonode(filename, user=None, title=None,
                             title=title,
                             keywords=keyword_list,
                             overwrite=overwrite)
+
+        if kw_summary is not None:
+            layer.supplemental_information = kw_summary
 
         layer.save()
     except GeoNodeException, e:
