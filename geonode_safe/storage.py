@@ -616,6 +616,7 @@ def save_file_to_geonode(filename, user=None, title=None,
     keyword_file = basename + '.keywords'
     kw_title = None
     kw_summary = None
+    kw_table = None
     if os.path.exists(keyword_file):
         f = open(keyword_file, 'r')
         for line in f.readlines():
@@ -636,6 +637,10 @@ def save_file_to_geonode(filename, user=None, title=None,
 
             if 'impact_summary' in keyword:
                 kw_summary = keyword.split(':')[1]
+                continue
+
+            if 'impact_table' in keyword:
+                kw_table = keyword.split(':')[1]
                 continue
 
             keyword_list.append(keyword)
@@ -688,7 +693,10 @@ def save_file_to_geonode(filename, user=None, title=None,
                             overwrite=overwrite)
 
         if kw_summary is not None:
-            layer.supplemental_information = kw_summary
+            layer.abstract = kw_summary
+
+        if kw_table is not None:
+            layer.supplemental_information = kw_table
 
         layer.save()
     except GeoNodeException, e:

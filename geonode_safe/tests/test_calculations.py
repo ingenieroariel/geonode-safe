@@ -19,6 +19,7 @@ from geonode_safe.tests.utilities import TESTDATA, INTERNAL_SERVER_URL
 from geonode.layers.utils import get_valid_user, check_geonode_is_up
 
 from safe.common.testing import UNITDATA
+from safe.engine.impact_functions_for_testing import unspecific_building_impact_model
 
 from django.test.client import Client
 from django.conf import settings
@@ -103,7 +104,7 @@ class TestCalculations(unittest.TestCase):
                 #bbox=viewport_bbox_string,
                 bbox=exp_bbox_string,  # This one reproduced the
                                        # crash for lembang
-                impact_function='Empirical Fatality Function',
+                impact_function='I T B Fatality Function',
                 keywords='test,shakemap,usgs'))
 
         self.assertEqual(rv.status_code, 200)
@@ -145,7 +146,7 @@ class TestCalculations(unittest.TestCase):
 
         # Name files for hazard level, exposure and expected fatalities
         population = 'Population_Jakarta_geographic'
-        plugin_name = 'HKVtest'
+        plugin_name = 'Need evacuation'
 
         # Upload exposure data for this test
         exposure_filename = '%s/%s.asc' % (TESTDATA, population)
@@ -485,7 +486,7 @@ class TestCalculations(unittest.TestCase):
             assert numpy.allclose(count[i], brutecount[mmi], rtol=1.0e-6)
 
 
-    @numpy.testing.dec.skipif(True, 'Talk to Ole. Gender data not available.')
+    @numpy.testing.dec.skipif(True, ' * Talk to Ole. Gender data not available.')
     def test_linked_datasets(self):
         """Linked datesets can be pulled in e.g. to include gender break down
         """

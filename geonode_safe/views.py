@@ -36,10 +36,6 @@ from geonode_safe.utilities import titelize
 from geonode_safe.utilities import compatible_layers
 from geonode_safe.utilities import get_common_resolution, get_bounding_boxes
 
-from safe.engine.impact_functions_for_testing import HKV_flood_study
-from safe.engine.impact_functions_for_testing import empirical_fatality_model
-from safe.engine.impact_functions_for_testing import unspecific_building_impact_model
-
 from safe.api import get_admissible_plugins
 from safe.api import calculate_impact
 
@@ -145,7 +141,7 @@ def calculate(request, save_output=save_to_geonode):
             layers.append(L)
 
         # Calculate result using specified impact function
-        msg = ('- Calculating impact using %s' % impact_function)
+        msg = ('- Calculating impact using %s' % impact_function_name)
         #logger.info(msg)
         impact_file = calculate_impact(layers=layers,
                                            impact_fcn=impact_function)

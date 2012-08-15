@@ -7,21 +7,17 @@ import unittest
 import warnings
 
 
-from geonode_safe.views import calculate
 from geonode_safe.storage import get_layer_descriptors
-from geonode_safe.models import Calculation, Workspace
-from geonode_safe.tests.utilities import TESTDATA, DEMODATA, INTERNAL_SERVER_URL
-
 from geonode_safe.storage import save_to_geonode, check_layer
 from geonode_safe.storage import download
 from geonode_safe.storage import read_layer
-from geonode_safe.tests.utilities import TESTDATA
 
 from safe.impact_functions.core import FunctionProvider
 from safe.impact_functions.core import requirements_collect
 from safe.impact_functions.core import requirement_check
-from safe.impact_functions.core import get_plugins
+from safe.impact_functions.core import get_admissible_plugins
 from safe.impact_functions.core import compatible_layers
+from safe.common.testing import UNITDATA
 
 from geonode.layers.utils import get_valid_user
 from geonode.layers.utils import upload, file_upload, GeoNodeException
@@ -29,7 +25,6 @@ from geonode.layers.utils import upload, file_upload, GeoNodeException
 from django.test.client import Client
 from django.conf import settings
 from django.utils import simplejson as json
-
 
 
 DEFAULT_PLUGINS = ('Earthquake Fatality Function',)
@@ -65,18 +60,18 @@ class Test_plugins(unittest.TestCase):
         """
 
         # Upload a raster and a vector data set
-        hazard_filename = os.path.join(TESTDATA,
-                                       'shakemap_padang_20090930.asc')
+        hazard_filename = os.path.join(UNITDATA, 'hazard',
+                                       'jakarta_flood_design.tif')
         hazard_layer = save_to_geonode(hazard_filename)
         check_layer(hazard_layer, full=True)
 
-        exposure_filename = os.path.join(TESTDATA,
-                                         'lembang_schools.shp')
+        exposure_filename = os.path.join(UNITDATA, 'exposure',
+                                         'buildings_osm_4326.shp')
         exposure_layer = save_to_geonode(exposure_filename)
         check_layer(exposure_layer, full=True)
 
         # Test
-        plugin_list = get_plugins()
+        plugin_list = get_admissible_plugins()
         assert len(plugin_list) > 0
 
         geoserver = {'url': settings.GEOSERVER_BASE_URL + 'ows',
@@ -91,16 +86,16 @@ class Test_plugins(unittest.TestCase):
         # Characterisation test to preserve the behaviour of
         # get_layer_descriptors. FIXME: I think we should change this to be
         # a dictionary of metadata entries (ticket #126).
-        reference = [['geonode:lembang_schools',
+        reference = [['topp:buildings_osm_4326',
                       {'layer_type': 'vector',
                        'category': 'exposure',
                        'subcategory': 'building',
-                       'title': 'lembang_schools'}],
-                     ['geonode:shakemap_padang_20090930',
+                       'title': 'buildings_osm_4326'}],
+                     ['topp:jakarta_flood_design',
                       {'layer_type': 'raster',
                        'category': 'hazard',
-                       'subcategory': 'earthquake',
-                       'title': 'shakemap_padang_20090930'}]]
+                       'subcategory': 'flood',
+                       'title': 'Jakarta_flood_like_2007_with_structural_improvements'}]]
 
         for entry in reference:
             name, mdblock = entry
@@ -131,7 +126,7 @@ class Test_plugins(unittest.TestCase):
         """
 
         c = Client()
-        rv = c.post('/safe/api/functions/', data={})
+        rv = c.get('/safe/api/functions/')
 
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rv['Content-Type'], 'application/json')
@@ -142,8 +137,8 @@ class Test_plugins(unittest.TestCase):
         """Verify the plugins can recognize compatible layers.
         """
         # Upload a raster and a vector data set
-        hazard_filename = os.path.join(TESTDATA,
-                                       'Earthquake_Ground_Shaking.asc')
+        hazard_filename = os.path.join(UNITDATA, 'hazard',
+                                       'jakarta_flood_design.tif')
         hazard_layer = save_to_geonode(hazard_filename,
                                        user=self.user,
                                        overwrite=True)
@@ -152,15 +147,15 @@ class Test_plugins(unittest.TestCase):
         msg = 'No keywords found in layer %s' % hazard_layer.name
         assert hazard_layer.keywords.count() > 0, msg
 
-        exposure_filename = os.path.join(TESTDATA,
-                                         'lembang_schools.shp')
+        exposure_filename = os.path.join(UNITDATA, 'exposure',
+                                         'buildings_osm_4326.shp')
         exposure_layer = save_to_geonode(exposure_filename)
         check_layer(exposure_layer, full=True)
         msg = 'No keywords found in layer %s' % exposure_layer.name
         assert exposure_layer.keywords.count() > 0, msg
 
         c = Client()
-        rv = c.post('/safe/api/functions/', data={})
+        rv = c.get('/safe/api/functions/')
 
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rv['Content-Type'], 'application/json')
