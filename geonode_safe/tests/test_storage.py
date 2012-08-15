@@ -406,7 +406,7 @@ class TestGeoNode(unittest.TestCase):
         # Compare data number by number
         assert nanallclose(A, A_ref, rtol=1.0e-8)
 
-    @numpy.testing.dec.skipif(True, 'Re-enable after talking to Ole')
+    @numpy.testing.dec.skipif(True, ' * Talk to Ole. Illegal value for argument "resolutions"')
     def test_specified_raster_resolution(self):
         """Raster layers can be downloaded with specific resolution
 
@@ -528,7 +528,7 @@ class TestGeoNode(unittest.TestCase):
                 # Upsampling to very coarse resolutions, just want sanity
                 assert 0 < numpy.nanmax(A) <= depth_max_ref
 
-    @numpy.testing.dec.skipif(True, 'Re-enable after talking to Ole')
+    @numpy.testing.dec.skipif(True, ' * Talk to Ole. Illegal value for argument "resolutions"')
     def test_raster_scaling(self):
         """Raster layers can be scaled when resampled
 
@@ -782,7 +782,7 @@ class TestGeoNode(unittest.TestCase):
             assert numpy.allclose(ref_geotransform, gn_geotransform), msg
 
 
-    @numpy.testing.dec.skipif(True, 'Re-enable after talking to Ole')
+    @numpy.testing.dec.skipif(True, ' * Talk to Ole. Could not decode srs "GCS_WGS_1984"')
     def test_data_resampling_example(self):
         """Raster data is unchanged when going through geonode
 
