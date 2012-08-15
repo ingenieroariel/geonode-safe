@@ -12,6 +12,7 @@ from geonode_safe.storage import check_layer, assert_bounding_box_matches
 from geonode_safe.storage import get_bounding_box
 from geonode_safe.storage import download, get_metadata
 from geonode_safe.storage import read_layer
+from geonode_safe.storage import get_layer_descriptors
 from geonode_safe.utilities import get_bounding_box_string
 from geonode_safe.utilities import bboxstring2list
 from geonode_safe.utilities import unique_filename, LAYER_TYPES
@@ -20,6 +21,8 @@ from geonode_safe.tests.utilities import TESTDATA, INTERNAL_SERVER_URL
 from geonode_safe.tests.utilities import get_web_page
 
 from safe.common.testing import UNITDATA
+from safe.impact_functions.core import get_admissible_plugins
+from safe.impact_functions.core import compatible_layers
 
 from geonode.layers.utils import upload, GeoNodeException
 from geonode.layers.models import Layer
@@ -40,7 +43,7 @@ def ns(tag):
 #---
 
 
-class TestGeoNode(unittest.TestCase):
+class TestStorage(unittest.TestCase):
     """Tests file uploads, metadata etc
     """
 
@@ -979,3 +982,67 @@ class TestGeoNode(unittest.TestCase):
                 assert depth_min <= interpolated_depth <= depth_max, msg
 
 
+    def test_plugin_compatibility(self):
+        """Default plugins perform as expected
+        """
+
+        # Upload a raster and a vector data set
+        hazard_filename = os.path.join(UNITDATA, 'hazard',
+                                       'jakarta_flood_design.tif')
+        hazard_layer = save_to_geonode(hazard_filename)
+        check_layer(hazard_layer, full=True)
+
+        exposure_filename = os.path.join(UNITDATA, 'exposure',
+                                         'buildings_osm_4326.shp')
+        exposure_layer = save_to_geonode(exposure_filename)
+        check_layer(exposure_layer, full=True)
+
+        # Test
+        plugin_list = get_admissible_plugins()
+        assert len(plugin_list) > 0
+
+        geoserver = {'url': settings.GEOSERVER_BASE_URL + 'ows',
+                     'name': 'Local Geoserver',
+                     'version': '1.0.0',
+                     'id': 0}
+        metadata = get_layer_descriptors(geoserver['url'])
+
+        msg = 'There were no layers in test geoserver'
+        assert len(metadata) > 0, msg
+
+        # Characterisation test to preserve the behaviour of
+        # get_layer_descriptors. FIXME: I think we should change this to be
+        # a dictionary of metadata entries (ticket #126).
+        reference = [['topp:buildings_osm_4326',
+                      {'layer_type': 'vector',
+                       'category': 'exposure',
+                       'subcategory': 'building',
+                       'title': 'buildings_osm_4326'}],
+                     ['topp:jakarta_flood_like_2007_with_structural_improvements',
+                      {'layer_type': 'raster',
+                       'category': 'hazard',
+                       'subcategory': 'flood',
+                       'title': 'Jakarta flood like 2007 with structural improvements'}]]
+
+        for entry in reference:
+            name, mdblock = entry
+
+            i = [x[0] for x in metadata].index(name)
+
+            msg = 'Got name %s, expected %s' % (name, metadata[i][0])
+            assert name == metadata[i][0], msg
+            for key in entry[1]:
+                refval = entry[1][key]
+                val = metadata[i][1][key]
+                msg = ('Got value "%s" for key "%s" '
+                       'Expected "%s"' % (val, key, refval))
+                assert refval == val, msg
+
+        # Check plugins are returned
+        annotated_plugins = [{'name': name,
+                              'doc': f.__doc__,
+                              'layers': compatible_layers(f, metadata)}
+                             for name, f in plugin_list.items()]
+
+        msg = 'No compatible layers returned'
+        assert len(annotated_plugins) > 0, msg
