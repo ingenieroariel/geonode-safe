@@ -9,11 +9,11 @@ import gisdata
 
 from geonode_safe.storage import save_to_geonode, RisikoException
 from geonode_safe.storage import check_layer, assert_bounding_box_matches
-from geonode_safe.storage import get_bounding_box_string
-from geonode_safe.storage import bboxstring2list
 from geonode_safe.storage import get_bounding_box
 from geonode_safe.storage import download, get_metadata
 from geonode_safe.storage import read_layer
+from geonode_safe.utilities import get_bounding_box_string
+from geonode_safe.utilities import bboxstring2list
 from geonode_safe.utilities import unique_filename, LAYER_TYPES
 from geonode_safe.utilities import nanallclose
 from geonode_safe.tests.utilities import TESTDATA, INTERNAL_SERVER_URL

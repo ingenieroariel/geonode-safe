@@ -294,11 +294,17 @@ def get_servers(user):
         theuser = get_valid_user()
     else:
         theuser = user
+
+    servers = []
+
     try:
         workspace = Workspace.objects.get(user=theuser)
+        servers = workspace.servers.all()
     except Workspace.DoesNotExist:
-        workspace = Workspace.objects.get(user__username='default')
-    servers = workspace.servers.all()
+        # It is okay to not load workspaces,
+        # the default geoserver is being defined below.
+        pass
+
     geoservers = [{'url': settings.GEOSERVER_BASE_URL + 'ows',
                    'name': 'Local Geoserver',
                    'version': '1.0.0', 'id':0}]

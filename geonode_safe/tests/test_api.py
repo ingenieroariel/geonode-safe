@@ -33,7 +33,7 @@ class Test_HTTP(unittest.TestCase):
         """
 
         c = Client()
-        rv = c.get('/impact/api/functions/')
+        rv = c.get('/safe/api/functions/')
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rv['Content-Type'], 'application/json')
         data = json.loads(rv.content)
@@ -52,7 +52,7 @@ class Test_HTTP(unittest.TestCase):
         """
 
         c = Client()
-        rv = c.get('/impact/api/layers/')
+        rv = c.get('/safe/api/layers/')
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rv['Content-Type'], 'application/json')
         data = json.loads(rv.content)
@@ -70,7 +70,7 @@ class Test_HTTP(unittest.TestCase):
 
         # Run calculation through API
         c = Client()
-        rv = c.post('/impact/api/calculate/',
+        rv = c.post('/safe/api/calculate/',
                     dict(hazard_server=INTERNAL_SERVER_URL,
                          hazard='geonode:earthquake_ground_shaking',
                          exposure='geonode:population_2010_clip',
@@ -126,7 +126,7 @@ class Test_HTTP(unittest.TestCase):
 
         # Run calculation through API
         c = Client()
-        rv = c.post('/impact/api/calculate/', data=dict(
+        rv = c.post('/safe/api/calculate/', data=dict(
                    hazard_server=INTERNAL_SERVER_URL,
                    hazard='geonode:lembang_mmi_hazmap',
                    exposure_server=INTERNAL_SERVER_URL,
@@ -154,8 +154,6 @@ class Test_HTTP(unittest.TestCase):
         assert 'run_duration' in data.keys()
         assert 'run_date' in data.keys()
         assert 'layer' in data.keys()
-
-        # FIXME (Ole): Download result and check.
 
 
 if __name__ == '__main__':
