@@ -91,11 +91,11 @@ class Test_plugins(unittest.TestCase):
                        'category': 'exposure',
                        'subcategory': 'building',
                        'title': 'buildings_osm_4326'}],
-                     ['topp:jakarta_flood_design',
+                     ['topp:jakarta_flood_like_2007_with_structural_improvements',
                       {'layer_type': 'raster',
                        'category': 'hazard',
                        'subcategory': 'flood',
-                       'title': 'Jakarta_flood_like_2007_with_structural_improvements'}]]
+                       'title': 'Jakarta flood like 2007 with structural improvements'}]]
 
         for entry in reference:
             name, mdblock = entry
