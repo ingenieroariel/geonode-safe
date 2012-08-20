@@ -106,10 +106,10 @@
     </target>
 
     <target name="deploy">
-        <mkdir dir="${build}/../../../impact/static/"/>
-        <delete dir="${build}../../../impact/static/calculator"/>
-        <mkdir dir="${build}/../../../impact/static/calculator"/>
-        <copy todir="${build}../../../impact/static/calculator">
+        <mkdir dir="${build}/../../../geonode_safe/static/"/>
+        <delete dir="${build}../../../geonode_safe/static/calculator"/>
+        <mkdir dir="${build}/../../../geonode_safe/static/calculator"/>
+        <copy todir="${build}../../../geonode_safe/static/calculator">
             <fileset dir="${build}/${ant.project.name}/WEB-INF/app/static"/>
         </copy>
     </target>
