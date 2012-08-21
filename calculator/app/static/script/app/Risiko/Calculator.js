@@ -65,7 +65,7 @@ Risiko.Calculator = Ext.extend(gxp.plugins.Tool, {
             id: 'exposurestore',
             fields: ['name', 'title', 'server_url'],
             autoLoad: true,
-            url: '/impact/api/layers/?category=exposure',
+            url: '/safe/api/layers/?category=exposure',
             root: 'objects'
         });
 
@@ -73,7 +73,7 @@ Risiko.Calculator = Ext.extend(gxp.plugins.Tool, {
             id: 'hazardstore',
             fields: ['name', 'title', 'server_url'],
             autoLoad: true,
-            url: '/impact/api/layers/?category=hazard',
+            url: '/safe/api/layers/?category=hazard',
             root: 'objects'
         });
 
@@ -151,7 +151,7 @@ Risiko.Calculator = Ext.extend(gxp.plugins.Tool, {
             id: 'functionstore',
             fields: ['name', 'doc', 'layers'],
             autoLoad: true,
-            url: '/impact/api/functions/',
+            url: '/safe/api/functions/',
             root: 'functions'
         });
 
@@ -298,7 +298,7 @@ Risiko.Calculator = Ext.extend(gxp.plugins.Tool, {
         	});
 
             Ext.Ajax.request({
-                url: '/impact/api/calculate/',
+                url: '/safe/api/calculate/',
                 loadMask: true,
                 params: {
                     hazard_server: hazard_server,
@@ -401,18 +401,6 @@ Risiko.Calculator = Ext.extend(gxp.plugins.Tool, {
             xtype: "panel",
             defaults: {
                 hideBorders: true
-            }
-        }, {
-            id: "logopanel",
-            height: 180,
-            frame: false,
-            border: false,
-            html: "<div><p>"+
-                    "<a href='http://bnpb.go.id' target='_blank'><img src='theme/app/img/bnpb_logo.png' alt='BNPB' title='BNPB' style='padding-left: 100px; float: left' /></a>"+
-                  "</p></div>",
-            xtype: "panel",
-            defaults: {
-                hideBorders: false
             }
         }]]);
     }
