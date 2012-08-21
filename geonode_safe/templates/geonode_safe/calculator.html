@@ -1,4 +1,4 @@
-{% extends "page_layout.html" %}
+{% extends "base.html" %}
 {% load i18n %}
 {% block title %}{% trans "Risiko Calculator" %}{% endblock %}
 {% block head %}
@@ -18,7 +18,7 @@ html, body {
     position: absolute;
 }
 #content {
-    top: 83px;
+    top: 53px;
     left: 0px;
     right: 0px;
     bottom: 0px;
@@ -29,7 +29,9 @@ iframe {
 }
 </style>
 {% endblock %}
-{% block pagecontent %}
+
+{% block body_outer %}
+
 <div class="justcontent" id="content">
 <iframe frameborder="no" class="justcontent" src="../static/calculator/index.html"></iframe>
 </div>
