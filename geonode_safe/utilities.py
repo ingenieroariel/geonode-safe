@@ -5,6 +5,7 @@ import os
 import copy
 import numpy
 import math
+import logging
 
 from osgeo import ogr
 from tempfile import mkstemp
@@ -12,6 +13,8 @@ from urllib2 import urlopen
 from safe.api import read_layer
 from safe.impact_functions.core import requirements_collect
 from safe.impact_functions.core import requirements_met
+
+logger = logging.getLogger(__name__)
 
 # Spatial layer file extensions that are recognised in Risiko
 # FIXME: Perhaps add '.gml', '.zip', ...
