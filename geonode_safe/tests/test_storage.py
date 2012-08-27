@@ -199,12 +199,12 @@ class TestStorage(unittest.TestCase):
             #os.system(cmd)
 
             if ext == '.tif':
-                layer_type = 'raster'
+                layertype = 'raster'
                 filename = '%s.tif' % basename
                 cmd = '/bin/cp %s.tif %s' % (org_basename, filename)
                 os.system(cmd)
             elif ext == '.shp':
-                layer_type = 'vector'
+                layertype = 'vector'
                 filename = '%s.shp' % basename
                 for e in ['shp', 'shx', 'sbx', 'sbn', 'dbf']:
                     cmd = '/bin/cp %s.%s %s.%s' % (org_basename, e,
@@ -230,7 +230,7 @@ class TestStorage(unittest.TestCase):
                 # Verify
                 assert 'id' in metadata
                 assert 'title' in metadata
-                assert 'layer_type' in metadata
+                assert 'layertype' in metadata
                 assert 'keywords' in metadata
                 assert 'bounding_box' in metadata
                 assert len(metadata['bounding_box']) == 4
@@ -251,14 +251,14 @@ class TestStorage(unittest.TestCase):
                                       ref_bbox), msg
                 assert layer.name == metadata['title']
                 assert layer_name == metadata['id']
-                assert layer_type == metadata['layer_type']
+                assert layertype == metadata['layertype']
 
                 # Check keywords
-                if layer_type == 'raster':
+                if layertype == 'raster':
                     category = 'hazard'
                     subcategory = 'flood'
                 else:
-                    msg = 'Unknown layer type %s' % layer_type
+                    msg = 'Unknown layer type %s' % layertype
                     raise Exception(msg)
 
                 keywords = metadata['keywords']
@@ -300,9 +300,9 @@ class TestStorage(unittest.TestCase):
         for i, layer in enumerate(layers):
 
             if filenames[i].endswith('.shp'):
-                layer_type = 'vector'
+                layertype = 'vector'
             elif filenames[i].endswith('.tif'):
-                layer_type = 'raster'
+                layertype = 'raster'
             else:
                 msg = ('Unknown layer extension in %s. '
                        'Expected .shp or .tif' % filenames[i])
@@ -314,7 +314,7 @@ class TestStorage(unittest.TestCase):
 
             assert 'id' in metadata
             assert 'title' in metadata
-            assert 'layer_type' in metadata
+            assert 'layertype' in metadata
             assert 'keywords' in metadata
             assert 'bounding_box' in metadata
             assert len(metadata['bounding_box']) == 4
@@ -335,17 +335,17 @@ class TestStorage(unittest.TestCase):
                                   ref_bbox), msg
             assert layer.name == metadata['title']
             assert layer_name == metadata['id']
-            assert layer_type == metadata['layer_type']
+            assert layertype == metadata['layertype']
 
             # Check keywords
-            if layer_type == 'raster':
+            if layertype == 'raster':
                 category = 'hazard'
                 subcategory = 'flood'
-            elif layer_type == 'vector':
+            elif layertype == 'vector':
                 category = 'exposure'
                 subcategory = 'building'
             else:
-                msg = 'Unknown layer type %s' % layer_type
+                msg = 'Unknown layer type %s' % layertype
                 raise Exception(msg)
 
             keywords = metadata['keywords']
@@ -1007,12 +1007,12 @@ class TestStorage(unittest.TestCase):
         # get_layer_descriptors. FIXME: I think we should change this to be
         # a dictionary of metadata entries (ticket #126).
         reference = [['topp:buildings_osm_4326',
-                      {'layer_type': 'vector',
+                      {'layertype': 'vector',
                        'category': 'exposure',
                        'subcategory': 'building',
                        'title': 'buildings_osm_4326'}],
                      ['topp:jakarta_flood_like_2007_with_structural_improvements',
-                      {'layer_type': 'raster',
+                      {'layertype': 'raster',
                        'category': 'hazard',
                        'subcategory': 'flood',
                        'title': 'Jakarta flood like 2007 with structural improvements'}]]

@@ -125,7 +125,7 @@ def get_metadata_from_layer(layer):
     metadata = {}
 
     # Metadata specific to layer types
-    metadata['layer_type'] = layer.datatype
+    metadata['layertype'] = layer.datatype
     if layer.datatype == 'raster':
         geotransform = extract_WGS84_geotransform(layer)
         metadata['geotransform'] = geotransform
@@ -240,12 +240,12 @@ def get_layer_descriptors(url):
         each layer of the following form:
 
         [['geonode:lembang_schools',
-          {'layer_type': 'vector',
+          {'layertype': 'vector',
            'category': 'exposure',
            'subcategory': 'building',
            'title': 'lembang_schools'}],
          ['geonode:shakemap_padang_20090930',
-          {'layer_type': 'raster',
+          {'layertype': 'raster',
            'category': 'hazard',
            'subcategory': 'earthquake',
            'title': 'shakemap_padang_20090930'}]]
@@ -274,7 +274,7 @@ def get_layer_descriptors(url):
 
         # Create new special purpose entry
         block = {}
-        block['layer_type'] = md['layer_type']
+        block['layertype'] = md['layertype']
         block['title'] = md['title']
 
         # Copy keyword data into this block possibly overwriting data
@@ -392,7 +392,7 @@ def download(server_url, layer_name, bbox, resolution=None):
     template = None
     layer_metadata = get_metadata(server_url, layer_name)
 
-    data_type = layer_metadata['layer_type']
+    data_type = layer_metadata['layertype']
     if data_type == 'vector':
 
         if resolution is not None:
@@ -557,7 +557,7 @@ def check_layer(layer, full=False):
 
     assert 'id' in metadata
     assert 'title' in metadata
-    assert 'layer_type' in metadata
+    assert 'layertype' in metadata
     assert 'keywords' in metadata
     assert 'bounding_box' in metadata
 
@@ -742,55 +742,6 @@ def save_file_to_geonode(filename, user=None, title=None,
         if extension == '.asc':
             os.remove(upload_filename)
             os.remove(upload_filename + '.aux.xml')
-
-
-def save_directory_to_geonode(directory,
-                              user=None,
-                              title=None,
-                              overwrite=True,
-                              check_metadata=True,
-                              ignore=None):
-    """Upload a directory of spatial data files to GeoNode
-
-    Input
-        directory: Valid root directory for layer files
-        user: Django User object
-        overwrite: Boolean variable controlling whether existing layers
-                   can be overwritten by this operation. Default is True
-        check_metadata: See save_file_to_geonode
-        ignore: None or list of filenames to ignore
-    Output
-        list of layer objects
-    """
-
-    if ignore is None:
-        ignore = []
-
-    msg = ('Argument %s to save_directory_to_geonode is not a valid directory.'
-           % directory)
-    assert os.path.isdir(directory), msg
-
-    layers = []
-    for root, _, files in os.walk(directory):
-        for short_filename in files:
-            if short_filename in ignore:
-                continue
-
-            _, extension = os.path.splitext(short_filename)
-            filename = os.path.join(root, short_filename)
-
-            # Attempt upload only if extension is recognised
-            if extension in LAYER_TYPES:
-               layer = save_file_to_geonode(filename,
-                                            user=user,
-                                            title=title,
-                                            overwrite=overwrite,
-                                            check_metadata=check_metadata)
-
-               layers.append(layer)
-
-    # Return layers that successfully uploaded
-    return layers
 
 
 def save_to_geonode(incoming, user=None, title=None,

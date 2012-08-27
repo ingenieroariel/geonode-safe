@@ -183,72 +183,6 @@ def extract_WGS84_geotransform(layer):
             top_left_y, y_rotation, ns_pixel_res)
 
 
-def extract_native_geotransform(layer):
-    """Extract native geotransform from OWS layer object.
-
-    Input
-        layer: Raster layer object e.g. obtained from WebCoverageService
-
-    Output:
-        geotransform: GDAL geotransform (www.gdal.org/gdal_tutorial.html)
-
-    Note:
-        This is only used for test purposes
-    """
-
-    grid = layer.grid
-
-    top_left_x = float(grid.origin[0])
-    we_pixel_res = float(grid.offsetvectors[0][0])
-    x_rotation = float(grid.offsetvectors[0][1])
-    top_left_y = float(grid.origin[1])
-    y_rotation = float(grid.offsetvectors[1][0])
-    ns_pixel_res = float(grid.offsetvectors[1][1])
-
-    # There is half a pixel_resolution difference between
-    # what WCS reports and what GDAL reports.
-    # A pixel CENTER vs pixel CORNER difference.
-    adjusted_top_left_x = top_left_x - we_pixel_res / 2
-    adjusted_top_left_y = top_left_y - ns_pixel_res / 2
-
-    return (adjusted_top_left_x, we_pixel_res, x_rotation,
-            adjusted_top_left_y, y_rotation, ns_pixel_res)
-
-def geotransform2bbox(geotransform, columns, rows):
-    """Convert geotransform to bounding box
-
-    Input
-        geotransform: GDAL geotransform (6-tuple).
-                      (top left x, w-e pixel resolution, rotation,
-                      top left y, rotation, n-s pixel resolution).
-                      See e.g. http://www.gdal.org/gdal_tutorial.html
-        columns: Number of columns in grid
-        rows: Number of rows in grid
-
-    Output
-        bbox: Bounding box as a list of geographic coordinates
-              [west, south, east, north]
-
-    Rows and columns are needed to determine eastern and northern bounds.
-    FIXME: Not sure if the pixel vs gridline registration issue is observed
-    correctly here. Need to check against gdal > v1.7
-    """
-
-    x_origin = geotransform[0]  # top left x
-    y_origin = geotransform[3]  # top left y
-    x_res = geotransform[1]     # w-e pixel resolution
-    y_res = geotransform[5]     # n-s pixel resolution
-    x_pix = columns
-    y_pix = rows
-
-    minx = x_origin
-    maxx = x_origin + (x_pix * x_res)
-    miny = y_origin + (y_pix * y_res)
-    maxy = y_origin
-
-    return [minx, miny, maxx, maxy]
-
-
 def geotransform2resolution(geotransform, isotropic=False,
                             # FIXME (Ole): Check these tolerances (issue #173)
                             rtol=5.0e-2, atol=1.0e-2):
@@ -340,38 +274,6 @@ def bbox_intersection(*args):
         return None
 
 
-def minimal_bounding_box(bbox, min_res, eps=1.0e-6):
-    """Grow bounding box to exceed specified resolution if needed
-
-    Input
-        bbox: Bounding box with format [W, S, E, N]
-        min_res: Minimal acceptable resolution to exceed
-        eps: Optional tolerance that will be applied to 'buffer' result
-
-    Ouput
-        Adjusted bounding box guaranteed to exceed specified resolution
-    """
-
-    # FIXME (Ole): Probably obsolete now
-
-    bbox = copy.copy(list(bbox))
-
-    delta_x = bbox[2] - bbox[0]
-    delta_y = bbox[3] - bbox[1]
-
-    if delta_x < min_res:
-        dx = (min_res - delta_x) / 2 + eps
-        bbox[0] -= dx
-        bbox[2] += dx
-
-    if delta_y < min_res:
-        dy = (min_res - delta_y) / 2 + eps
-        bbox[1] -= dy
-        bbox[3] += dy
-
-    return bbox
-
-
 def buffered_bounding_box(bbox, resolution):
     """Grow bounding box with one unit of resolution in each direction
 
@@ -424,56 +326,6 @@ def buffered_bounding_box(bbox, resolution):
     return bbox
 
 
-def get_geometry_type(geometry):
-    """Determine geometry type based on data
-
-    Input
-        geometry: A list of either point coordinates [lon, lat] or polygons
-                  which are assumed to be numpy arrays of coordinates
-
-    Output
-        geometry_type: Either ogr.wkbPoint or ogr.wkbPolygon
-
-    If geometry type cannot be determined an Exception is raised.
-
-    Note, there is no consistency check across all entries of the
-    geometry list, only the first element is used in this determination.
-    """
-
-    msg = 'Argument geometry must be a sequence. I got %s ' % type(geometry)
-    assert is_sequence(geometry), msg
-
-    msg = ('The first element in geometry must be a sequence of length > 2. '
-           'I got %s ' % str(geometry[0]))
-    assert is_sequence(geometry[0]), msg
-    assert len(geometry[0]) >= 2, msg
-
-    if len(geometry[0]) == 2:
-        try:
-            float(geometry[0][0])
-            float(geometry[0][1])
-        except:
-            pass
-        else:
-            # This geometry appears to be point data
-            geometry_type = ogr.wkbPoint
-    elif len(geometry[0]) > 2:
-        try:
-            x = numpy.array(geometry[0])
-        except:
-            pass
-        else:
-            # This geometry appears to be polygon data
-            if x.shape[0] > 2 and x.shape[1] == 2:
-                geometry_type = ogr.wkbPolygon
-
-    if geometry_type is None:
-        msg = 'Could not determine geometry type'
-        raise Exception(msg)
-
-    return geometry_type
-
-
 def is_sequence(x):
     """Determine if x behaves like a true sequence but not a string
 
@@ -491,41 +343,6 @@ def is_sequence(x):
     else:
         return True
 
-
-def array2wkt(A, geom_type='POLYGON'):
-    """Convert coordinates to wkt format
-
-    Input
-        A: Nx2 Array of coordinates representing either a polygon or a line.
-           A can be either a numpy array or a list of coordinates.
-        geom_type: Determines output keyword 'POLYGON' or 'LINESTRING'
-
-    Output
-        wkt: geometry in the format known to ogr: Examples
-
-        POLYGON((1020 1030,1020 1045,1050 1045,1050 1030,1020 1030))
-        LINESTRING(1000 1000, 1100 1050)
-
-    """
-
-    if geom_type == 'LINESTRING':
-        # One bracket
-        n = 1
-    elif geom_type == 'POLYGON':
-        # Two brackets (tsk tsk)
-        n = 2
-    else:
-        msg = 'Unknown geom_type: %s' % geom_type
-        raise Exception(msg)
-
-    wkt_string = geom_type + '(' * n
-
-    N = len(A)
-    for i in range(N):
-        # Works for both lists and arrays
-        wkt_string += '%f %f, ' % tuple(A[i])
-
-    return wkt_string[:-2] + ')' * n
 
 # Map of ogr numerical geometry types to their textual representation
 # FIXME (Ole): Some of them don't exist, even though they show up
@@ -628,35 +445,6 @@ def points_between_points(point1, point2, delta):
         points.append(point)
     return numpy.array(points)
 
-def points_along_line(line, delta):
-    """Calculate a list of points along a line with a given delta
-
-    Input
-        line: Numeric array of points (longitude, latitude).
-        delta: Decimal number to be used as step
-
-    Output
-        V: Numeric array of points (longitude, latitude).
-
-    Sources
-        http://paulbourke.net/geometry/polyarea/
-        http://en.wikipedia.org/wiki/Centroid
-    """
-
-    # Make sure it is numeric
-    P = numpy.array(line)
-    points = []
-    for i in range(len(P)-1):
-        pts = points_between_points(P[i], P[i+1], delta)
-        # If the first point of this list is the same
-        # as the last one recorded, do not use it
-        if len(points) > 0:
-            if numpy.allclose(points[-1], pts[0]):
-                pts = pts[1:]
-        points.extend(pts)
-    C = numpy.array(points)
-    return C
-
 
 def titelize(s):
     """Convert string into title
@@ -722,10 +510,10 @@ def get_common_resolution(haz_metadata, exp_metadata):
 
     # Determine resolution in case of raster layers
     haz_res = exp_res = None
-    if haz_metadata['layer_type'] == 'raster':
+    if haz_metadata['layertype'] == 'raster':
         haz_res = haz_metadata['resolution']
 
-    if exp_metadata['layer_type'] == 'raster':
+    if exp_metadata['layertype'] == 'raster':
         exp_res = exp_metadata['resolution']
 
     # Determine common resolution in case of two raster layers
@@ -795,8 +583,8 @@ def get_bounding_boxes(haz_metadata, exp_metadata, req_bbox):
 
     # Grow hazard bbox to buffer this common bbox in case where
     # hazard is raster and exposure is vector
-    if (haz_metadata['layer_type'] == 'raster' and
-        exp_metadata['layer_type'] == 'vector'):
+    if (haz_metadata['layertype'] == 'raster' and
+        exp_metadata['layertype'] == 'vector'):
 
         haz_res = haz_metadata['resolution']
         haz_bbox = buffered_bounding_box(intersection_bbox, haz_res)
