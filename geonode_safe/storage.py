@@ -5,6 +5,7 @@
 """
 
 import os
+import sys
 import time
 import numpy
 import urllib2
@@ -775,7 +776,7 @@ def save_directory_to_geonode(directory,
 
             # Attempt upload only if extension is recognised
             if extension in LAYER_TYPES:
-               layer = save_to_geonode(filename,
+               layer = save_file_to_geonode(filename,
                                             user=user,
                                             title=title,
                                             overwrite=overwrite,
@@ -789,7 +790,8 @@ def save_directory_to_geonode(directory,
 
 def save_to_geonode(incoming, user=None, title=None,
                     overwrite=True, check_metadata=True,
-                    ignore=None):
+                    keywords=[], verbosity=1,
+                    skip=False, ignore=None):
     """Save a files to local Risiko GeoNode
 
     Input
@@ -814,20 +816,40 @@ def save_to_geonode(incoming, user=None, title=None,
            'I got %s' % incoming)
     assert isinstance(incoming, basestring), msg
 
+    output = []
+
     if os.path.isdir(incoming):
         # Upload all valid layer files in this dir recursively
         layers = save_directory_to_geonode(incoming, title=title, user=user,
                                            overwrite=overwrite,
                                            check_metadata=check_metadata,
                                            ignore=ignore)
-        return layers
-    elif os.path.isfile(incoming):
-        # Upload single file (using its name as title)
-        layer = save_file_to_geonode(incoming, title=title, user=user,
-                                     overwrite=overwrite,
-                                     check_metadata=check_metadata,
-                                     ignore=ignore)
-        return layer
+
+        for layer in layers:
+            #FIXME(Ariel): Implement this at a lower level.
+            info = {'file': incoming, 'status': 'uploaded'}
+            info['name'] = layer.name
+            output.append(info)
+
     else:
-        msg = 'Argument %s was neither a file or a directory' % incoming
-        raise RisikoException(msg)
+        info = {'file': incoming}
+        info['status'] = 'skipped'
+
+        try:
+            # Upload single file (using its name as title)
+            layer = save_file_to_geonode(incoming, title=title, user=user,
+                                         overwrite=overwrite,
+                                         check_metadata=check_metadata,
+                                         ignore=ignore)
+            info['status'] = 'uploaded'
+            info['name'] = layer.name
+        except RisikoException, re:
+            info['status'] = 'failed'
+            exception_type, error, traceback = sys.exc_info()
+            info['traceback'] = traceback
+            info['exception_type'] = exception_type
+            info['error'] = error
+
+        output.append(info)
+
+    return output
