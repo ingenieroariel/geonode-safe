@@ -382,48 +382,6 @@ def geometrytype2string(g_type):
         return 'Unknown geometry type: %s' % str(g_type)
 
 
-def calculate_polygon_area(polygon, signed=False):
-    """Calculate the signed area of non-self-intersecting polygon
-
-    Input
-        polygon: Numeric array of points (longitude, latitude). It is assumed
-                 to be closed, i.e. first and last points are identical
-        signed: Optional flag deciding whether returned area retains its sign:
-                If points are ordered counter clockwise, the signed area
-                will be positive.
-                If points are ordered clockwise, it will be negative
-                Default is False which means that the area is always positive.
-
-    Output
-        area: Area of polygon (subject to the value of argument signed)
-
-    Sources
-        http://paulbourke.net/geometry/polyarea/
-        http://en.wikipedia.org/wiki/Centroid
-    """
-
-    # Make sure it is numeric
-    P = numpy.array(polygon)
-
-    msg = ('Polygon is assumed to consist of coordinate pairs. '
-           'I got second dimension %i instead of 2' % P.shape[1])
-    assert P.shape[1] == 2, msg
-
-    x = P[:, 0]
-    y = P[:, 1]
-
-    # Calculate 0.5 sum_{i=0}^{N-1} (x_i y_{i+1} - x_{i+1} y_i)
-    a = x[:-1] * y[1:]
-    b = y[:-1] * x[1:]
-
-    A = numpy.sum(a - b) / 2.
-
-    if signed:
-        return A
-    else:
-        return abs(A)
-
-
 def points_between_points(point1, point2, delta):
     """Creates an array of points between two points given a delta
 
