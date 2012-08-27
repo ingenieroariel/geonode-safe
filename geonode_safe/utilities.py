@@ -140,57 +140,6 @@ def write_keywords(keywords, filename):
     fid.close()
 
 
-def read_keywords(filename):
-    """Read keywords dictonary from file
-
-    Input
-        filename: Name of keywords file. Extension expected to be .keywords
-                  The format of one line is expected to be either
-                  string: string
-                  or
-                  string
-    Output
-        keywords: Dictionary of keyword, value pairs
-
-    """
-
-    # Input checks
-    basename, ext = os.path.splitext(filename)
-
-    msg = ('Unknown extension for file %s. '
-           'Expected %s.keywords' % (filename, basename))
-    assert ext == '.keywords', msg
-
-    if not os.path.isfile(filename):
-        return {}
-
-    # Read
-    keywords = {}
-    fid = open(filename, 'r')
-    for line in fid.readlines():
-        text = line.strip()
-        if text == '':
-            continue
-
-        fields = text.split(':')
-
-        msg = ('Keyword must be either "string" or "string: string". '
-               'I got %s ' % text)
-        assert len(fields) in [1, 2], msg
-
-        key = fields[0].strip()
-
-        if len(fields) == 2:
-            val = fields[1].strip()
-        else:
-            val = None
-
-        keywords[key] = val
-    fid.close()
-
-    return keywords
-
-
 def extract_WGS84_geotransform(layer):
     """Extract geotransform from OWS layer object.
 
