@@ -29,7 +29,7 @@ import datetime
 
 from geonode_safe.storage import download
 from geonode_safe.storage import get_metadata, get_layer_descriptors
-from geonode_safe.storage import save_to_geonode
+from geonode_safe.storage import save_file_to_geonode
 from geonode_safe.models import Calculation, Workspace
 from geonode_safe.utilities import bboxlist2string
 from geonode_safe.utilities import titelize
@@ -59,7 +59,7 @@ def exception_format(e):
 
 
 @csrf_exempt
-def calculate(request, save_output=save_to_geonode):
+def calculate(request, save_output=save_file_to_geonode):
     start = datetime.datetime.now()
 
     if request.method == 'GET':

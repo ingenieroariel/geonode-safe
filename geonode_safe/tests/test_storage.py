@@ -406,7 +406,6 @@ class TestStorage(unittest.TestCase):
         # Compare data number by number
         assert nanallclose(A, A_ref, rtol=1.0e-8)
 
-    @numpy.testing.dec.skipif(True, ' * Talk to Ole. Illegal value for argument "resolutions"')
     def test_specified_raster_resolution(self):
         """Raster layers can be downloaded with specific resolution
 
@@ -450,7 +449,7 @@ class TestStorage(unittest.TestCase):
                                  hazard_layer.name)
 
         # Test for a range of resolutions
-        for res in [0.02, 0.01, 0.005, 0.002, 0.001, 0.0005,  # Coarser
+        for res in [0.01, 0.005, 0.002, 0.001, 0.0005,  # Coarser
                     0.0002, 0.0001, 0.00006, 0.00003]:        # Finer
 
             # Set bounding box
@@ -528,7 +527,6 @@ class TestStorage(unittest.TestCase):
                 # Upsampling to very coarse resolutions, just want sanity
                 assert 0 < numpy.nanmax(A) <= depth_max_ref
 
-    @numpy.testing.dec.skipif(True, ' * Talk to Ole. Illegal value for argument "resolutions"')
     def test_raster_scaling(self):
         """Raster layers can be scaled when resampled
 
@@ -559,8 +557,7 @@ class TestStorage(unittest.TestCase):
                                      raster_layer.name)
 
             # Test for a range of resolutions
-            for res in [0.02, 0.01, 0.005, 0.002, 0.001, 0.0005,  # Coarser
-                        0.0002]:                                  # Finer
+            for res in [0.01, 0.005, 0.002, 0.001, 0.0005, 0.0002]:
 
                 bbox = get_bounding_box_string(raster_filename)
 

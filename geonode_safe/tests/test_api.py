@@ -6,7 +6,8 @@ import warnings
 import time
 
 from geonode_safe.views import calculate
-from geonode_safe.storage import save_to_geonode, check_layer
+from geonode_safe.storage import save_file_to_geonode as save_to_geonode
+from geonode_safe.storage import check_layer
 from geonode_safe.storage import assert_bounding_box_matches
 from geonode_safe.storage import download
 from geonode_safe.storage import read_layer
@@ -14,6 +15,7 @@ from geonode_safe.storage import get_metadata
 from geonode_safe.storage import get_bounding_box
 from geonode_safe.utilities import get_bounding_box_string
 from geonode_safe.utilities import nanallclose
+from geonode_safe.utilities import compatible_layers
 from geonode_safe.tests.utilities import TESTDATA, INTERNAL_SERVER_URL
 
 from geonode.layers.utils import get_valid_user, check_geonode_is_up
@@ -21,6 +23,9 @@ from geonode.layers.utils import get_valid_user, check_geonode_is_up
 from safe.common.testing import UNITDATA
 from safe.engine.impact_functions_for_testing import unspecific_building_impact_model
 from safe.impact_functions.core import get_admissible_plugins
+from safe.impact_functions.core import requirements_collect
+from safe.impact_functions.core import requirements_met
+from safe.impact_functions.inundation.flood_OSM_building_impact import FloodBuildingImpactFunction
 
 from django.test.client import Client
 from django.conf import settings
@@ -42,7 +47,7 @@ def lembang_damage_function(x):
     return value
 
 
-class TestAPI(unittest.TestCase):
+class TestApi(unittest.TestCase):
     """Tests of geonode-safe API
     """
 
@@ -603,6 +608,48 @@ class TestAPI(unittest.TestCase):
     def test_plugin_selection(self):
         """Verify the plugins can recognize compatible layers.
         """
+        exposure =[
+                 'topp:buildings_osm_4326',
+                 {'layertype': 'vector',
+                  'category': 'exposure',
+                  'subcategory': 'building',
+                  'title': 'buildings_osm_4326',
+                  'datatype': 'osm',
+                  'purpose': 'dki'
+                 }
+               ]
+        hazard = [
+                 'topp:jakarta_flood_like_2007_with_structural_improvements',
+                  {'layertype': 'raster',
+                   'category': 'hazard',
+                   'subcategory': 'flood',
+                   'title': 'Jakarta flood like 2007 with structural improvements',
+                   'resolution': '0.00045228819716',
+                   'unit': 'm'
+                   }
+               ]
+        layers = [exposure, hazard]
+
+        exposure_name, exposure_params = exposure
+        hazard_name, hazard_params = hazard
+
+        requirements = requirements_collect(FloodBuildingImpactFunction)
+
+        exposure_compatible = requirements_met(requirements, exposure_params)
+        assert exposure_compatible
+
+        hazard_compatible = requirements_met(requirements, hazard_params)
+        assert hazard_compatible
+
+        compatible = compatible_layers(FloodBuildingImpactFunction, layers)
+
+        assert exposure_name in compatible
+        assert hazard_name in compatible
+
+    def test_plugin_selection_http(self):
+        """Verify the plugins can recognize compatible layers (HTTP).
+        """
+
         # Upload a raster and a vector data set
         hazard_filename = os.path.join(UNITDATA, 'hazard',
                                        'jakarta_flood_design.tif')
@@ -618,8 +665,20 @@ class TestAPI(unittest.TestCase):
                                          'buildings_osm_4326.shp')
         exposure_layer = save_to_geonode(exposure_filename)
         check_layer(exposure_layer, full=True)
+
         msg = 'No keywords found in layer %s' % exposure_layer.name
         assert exposure_layer.keywords.count() > 0, msg
+
+        # make sure the keywords for the flood building impact
+        # function are present.
+        hazard_keywords = [k.name for k in hazard_layer.keywords.all()]
+        exposure_keywords = [k.name for k in exposure_layer.keywords.all()]
+
+        assert 'category:hazard' in hazard_keywords
+        assert 'subcategory:flood' in hazard_keywords
+
+        assert 'category:exposure' in exposure_keywords
+        assert 'subcategory:building' in exposure_keywords
 
         c = Client()
         functions_url = reverse('safe-functions')
@@ -633,11 +692,8 @@ class TestAPI(unittest.TestCase):
 
         functions = data['functions']
 
-        # FIXME (Ariel): This test should implement an alternative function to
-        # parse the requirements, but for now it will just take the buildings
-        # damage one.
         for function in functions:
-            if function['name'] == 'Earthquake Building Damage Function':
+            if function['name'] == 'Flood Building Impact Function':
                 layers = function['layers']
 
                 msg_tmpl = 'Expected layer %s in list of compatible layers: %s'
@@ -647,3 +703,5 @@ class TestAPI(unittest.TestCase):
 
                 exposure_msg = msg_tmpl % (exposure_layer.typename, layers)
                 assert exposure_layer.typename in layers, exposure_msg
+
+
