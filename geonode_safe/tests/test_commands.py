@@ -3,6 +3,7 @@ import os
 from django.core.management import call_command
 from django.test import TestCase
 from safe.common.testing import UNITDATA
+from gisdata import BAD_DATA
 
 class CommandsTestCase(TestCase):
     def test_safeimportlayers(self):
@@ -16,7 +17,6 @@ class CommandsTestCase(TestCase):
 
     def test_error_safeimportlayers(self):
         "Test safeimportlayers with bad data."
-        layer = os.path.join(UNITDATA, 'hazard', 'does-not-exist')
-        args = [layer]
-        opts = {'verbosity': 3}
+        args = [BAD_DATA]
+        opts = {'verbosity': 3, 'ignore_errors': True}
         call_command('safeimportlayers', *args, **opts)

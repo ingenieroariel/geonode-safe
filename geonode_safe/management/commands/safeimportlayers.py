@@ -53,7 +53,9 @@ class Command(BaseCommand):
         start = datetime.datetime.now()
         output = []
         for path in args:
-            out = save_to_geonode(path, user=user, overwrite=overwrite, skip=skip, keywords=keywords, verbosity=verbosity)
+            out = save_to_geonode(path, user=user, ignore_errors=ignore_errors, 
+                                  overwrite=overwrite, skip=skip,
+                                  keywords=keywords, verbosity=verbosity)
             output.extend(out)
 
         updated = [dict_['file'] for dict_ in output if dict_['status']=='updated']

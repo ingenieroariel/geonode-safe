@@ -7,7 +7,8 @@ import tempfile
 import datetime
 import gisdata
 
-from geonode_safe.storage import save_to_geonode, RisikoException
+from geonode_safe.storage import save_file_to_geonode as save_to_geonode
+from geonode_safe.storage import RisikoException
 from geonode_safe.storage import check_layer, assert_bounding_box_matches
 from geonode_safe.storage import get_bounding_box
 from geonode_safe.storage import download, get_metadata
@@ -125,13 +126,9 @@ class TestStorage(unittest.TestCase):
         """RisikoException is returned for non existing file
         """
         sampletxt = os.path.join(UNITDATA, 'smoothoperator.shp')
-        try:
+        msg = ('Expected an exception for non existing file')
+        with self.assertRaises(GeoNodeException):
             save_to_geonode(sampletxt, user=self.user)
-        except RisikoException, e:
-            pass
-        else:
-            msg = ('Expected an exception for non existing file')
-            assert False, msg
 
     def test_non_existing_dir(self):
         """RisikoException is returned for non existing dir
@@ -785,7 +782,6 @@ class TestStorage(unittest.TestCase):
             assert numpy.allclose(ref_geotransform, gn_geotransform), msg
 
 
-    @numpy.testing.dec.skipif(True, ' * Talk to Ole. Could not decode srs "GCS_WGS_1984"')
     def test_data_resampling_example(self):
         """Raster data is unchanged when going through geonode
 
@@ -901,10 +897,10 @@ class TestStorage(unittest.TestCase):
                 assert att[key] == att_ref[key]
 
         # Test riab's interpolation function
-        I = H.interpolate(E, name='depth')
+        I = H.interpolate(E, attribute_name='depth')
         icoordinates = I.get_geometry()
 
-        I_ref = H_ref.interpolate(E_ref, name='depth')
+        I_ref = H_ref.interpolate(E_ref, attribute_name='depth')
         icoordinates_ref = I_ref.get_geometry()
 
         assert numpy.allclose(coordinates,

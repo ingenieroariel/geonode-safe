@@ -11,6 +11,8 @@ import numpy
 import urllib2
 import tempfile
 import contextlib
+import logging
+
 from zipfile import ZipFile
 
 from geonode_safe.utilities import LAYER_TYPES
@@ -34,7 +36,10 @@ from owslib.wcs import WebCoverageService
 from owslib.wfs import WebFeatureService
 
 from geonode.layers.utils import file_upload, GeoNodeException
+from geonode.layers.models import Layer
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 INTERNAL_SERVER_URL = os.path.join(settings.GEOSERVER_BASE_URL, 'ows')
 
@@ -604,8 +609,8 @@ def save_file_to_geonode(filename, user=None, title=None,
     basename, extension = os.path.splitext(filename)
 
     if extension not in LAYER_TYPES:
-        msg = ('Invalid file extension in file %s. Valid extensions are '
-               '%s' % (filename, str(LAYER_TYPES)))
+        msg = ('Invalid file extension "%s" in file %s. Valid extensions are '
+               '%s' % (extension, filename, str(LAYER_TYPES)))
         raise RisikoException(msg)
 
     # Try to find a file with a .keywords extension
@@ -790,7 +795,8 @@ def save_directory_to_geonode(directory,
 
 def save_to_geonode(incoming, user=None, title=None,
                     overwrite=True, check_metadata=True,
-                    keywords=[], verbosity=1,
+                    keywords=[], verbosity=1, console=sys.stdout,
+                    ignore_errors=True,
                     skip=False, ignore=None):
     """Save a files to local Risiko GeoNode
 
@@ -816,40 +822,81 @@ def save_to_geonode(incoming, user=None, title=None,
            'I got %s' % incoming)
     assert isinstance(incoming, basestring), msg
 
-    output = []
+    potential_files = []
+    if os.path.isfile(incoming):
+        ___, short_filename = os.path.split(incoming)
+        basename, extension = os.path.splitext(short_filename)
+        filename = incoming
+ 
+        if extension in ['.tif', '.shp', '.zip', '.asc']:
+            potential_files.append((basename, filename))
 
-    if os.path.isdir(incoming):
-        # Upload all valid layer files in this dir recursively
-        layers = save_directory_to_geonode(incoming, title=title, user=user,
-                                           overwrite=overwrite,
-                                           check_metadata=check_metadata,
-                                           ignore=ignore)
-
-        for layer in layers:
-            #FIXME(Ariel): Implement this at a lower level.
-            info = {'file': incoming, 'status': 'uploaded'}
-            info['name'] = layer.name
-            output.append(info)
-
+    elif not os.path.isdir(incoming):
+        msg = ('Please pass a filename or a directory name as the "incoming" '
+               'parameter, instead of %s: %s' % (incoming, type(incoming)))
+        logger.exception(msg)
+        raise GeoNodeException(msg)
     else:
-        info = {'file': incoming}
-        info['status'] = 'skipped'
+        datadir = incoming
+        results = []
 
-        try:
-            # Upload single file (using its name as title)
-            layer = save_file_to_geonode(incoming, title=title, user=user,
+        for root, dirs, files in os.walk(datadir):
+            for short_filename in files:
+                basename, extension = os.path.splitext(short_filename)
+                filename = os.path.join(root, short_filename)
+                if extension in ['.tif', '.shp', '.zip', '.asc']:
+                    potential_files.append((basename, filename))
+
+    number = len(potential_files)
+
+    output = []
+    for i, file_pair in enumerate(potential_files):
+        basename, filename = file_pair
+
+        existing_layers = Layer.objects.filter(name=basename)
+
+        if existing_layers.count() > 0:
+            existed = True
+        else:
+            existed = False
+
+        if existed and skip:
+            save_it = False
+            status = 'skipped'
+            layer = existing_layers[0]
+        else:
+            save_it = True
+
+        if save_it:
+            try:
+                layer = save_file_to_geonode(filename, title=None, user=user,
                                          overwrite=overwrite,
                                          check_metadata=check_metadata,
                                          ignore=ignore)
-            info['status'] = 'uploaded'
-            info['name'] = layer.name
-        except RisikoException, re:
-            info['status'] = 'failed'
-            exception_type, error, traceback = sys.exc_info()
+                if not existed:
+                    status = 'created'
+                else:
+                    status = 'updated'
+            except Exception, e:
+                if ignore_errors:
+                    status = 'failed'
+                    exception_type, error, traceback = sys.exc_info()
+                else:
+                    if verbosity > 0:
+                        msg = "Stopping process because --ignore-errors was not set and an error was found."
+                        print >> sys.stderr, msg
+                        raise Exception('Failed to process %s' % filename, e), None, sys.exc_info()[2]
+
+        msg = "[%s] Layer for '%s' (%d/%d)" % (status, filename, i+1, number)
+        info = {'file': filename, 'status': status}
+        if status == 'failed':
             info['traceback'] = traceback
             info['exception_type'] = exception_type
             info['error'] = error
+        else:
+            info['name'] = layer.name
 
         output.append(info)
-
+        if verbosity > 0:
+            print >> console, msg
     return output
