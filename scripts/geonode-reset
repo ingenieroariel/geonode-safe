@@ -1,0 +1,18 @@
+# stop services
+sudo service tomcat6 stop
+sudo service apache2 stop
+
+# reset geoserver
+sudo rm -rf /var/lib/tomcat6/webapps/geoserver
+
+# reset geonode's database
+sudo -u postgres dropdb geonode
+sudo -u postgres createdb geonode -T template_postgis -O geonode
+geonode syncdb --noinput
+geonode migrate --noinput
+geonode loaddata sample_admin
+
+
+# start services
+sudo service tomcat6 start
+sudo service apache2 start
