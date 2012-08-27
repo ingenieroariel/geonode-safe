@@ -1,6 +1,0 @@
-===============
-Release Process
-===============
-
-
-No documentation.
