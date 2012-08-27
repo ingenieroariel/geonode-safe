@@ -148,7 +148,7 @@ class TestAPI(unittest.TestCase):
 
         # Name files for hazard level, exposure and expected fatalities
         population = 'Population_Jakarta_geographic'
-        plugin_name = 'Need evacuation'
+        plugin_name = 'Flood Evacuation Function'
 
         # Upload exposure data for this test
         exposure_filename = '%s/%s.asc' % (TESTDATA, population)
