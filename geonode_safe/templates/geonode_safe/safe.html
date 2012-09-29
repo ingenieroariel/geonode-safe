@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load leaflet_tags %}
+
+{% block title %}{% trans "SAFE - Scenario Assesment for Emergencies" %}{% endblock %}
+
+<!-- Le css -->
+{% block head %}
+  {{ block.super }}
+  {% leaflet_css %}
+  <link href="{{ STATIC_URL }}safe/safe.css" rel="stylesheet">
+{% endblock %}
+
+<!-- Le html -->
+{% block body_outer %}
+  {% leaflet_map "safemap" %}
+{% endblock body_outer %}
+
+{% block footer %}
+  <div id="question">
+    <div id="branding" class="pull-left">
+      <h2>SAFE</h2>
+      <p>Scenario Assesment<br>For Emergencies</p>
+    </div>
+
+    <form class="safeform form-horizontal" id="calculateform">
+      {% csrf_token %}
+      <label id="hazardlabel" for="hazard">In the event of</label> 
+      <select class="input" name="hazard" id="hazardlist"></select>
+      <label id="exposurelabel" for="exposure">how many</label> 
+      <select class="input" name="exposure"  id="exposurelist"></select>
+      <label id="functionlabel" for="function">would</label> 
+      <select class="input" name="function" id="functionlist"></select>
+      <img id="questionmark" height='30px' src="{{ STATIC_URL }}safe/img/question.svg" />
+    </form>
+  </div>
+  <div id="answer">
+    <div class="row">
+      <div id="answerpanel" class="span2">
+        <img id="answermark" height='120px' src="{{ STATIC_URL }}safe/img/answer.svg" />
+        <div id="canvas-loader">
+          <div id="block_1" class="barlittle"></div>
+          <div id="block_2" class="barlittle"></div>
+          <div id="block_3" class="barlittle"></div>
+          <div id="block_4" class="barlittle"></div>
+          <div id="block_5" class="barlittle"></div>
+        </div>
+      </div>
+      <div id="result" class="span9">
+        <a id="source-code" href="#" rel="popover" title="A Title" data-content="And here's some amazing content. It's very engaging. right?">Source code</a>
+        </div>
+      </div>
+      <div id="leftpanel" class="pull-right span2">
+        <small>Try again:&nbsp;</small><a id="reset" href="#" class="btn">Reset</a>
+      </div>
+    </div>
+  </div>
+{% endblock footer %}
+
+<!-- Le Javascript -->
+{% block extra_script %}
+{% leaflet_js %}
+<script src="{{STATIC_URL}}/safe/safe.js" />
+{% endblock extra_script %}

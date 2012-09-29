@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="icon" x="0px" y="0px" width="100.0px" height="100px" viewBox="0 0 150 150" enable-background="new 0 0 150 150" xml:space="preserve">
+<g>
+	<g>
+		<circle style="fill: white; fill-opacity:0.7"  cx="60.671" cy="62.289" r="8.987"/>
+	</g>
+	<path style="fill: white; fill-opacity:0.7"  d="M71.455,73.074H49.886c-4.467,0-8.089,3.622-8.089,8.089v5.841c0,2.233,1.811,4.044,4.044,4.044h9.887   c2.233,0,4.044-1.811,4.044-4.044s-1.811-4.044-4.044-4.044h-5.842v-1.797h21.569v1.797h-5.842c-2.233,0-4.044,1.811-4.044,4.044   s1.811,4.044,4.044,4.044h9.886c2.233,0,4.045-1.811,4.045-4.044v-5.841C79.544,76.695,75.922,73.074,71.455,73.074z"/>
+	<rect style="fill: white; fill-opacity:0.7"  x="90.302" y="42.602" transform="matrix(0.9659 0.2587 -0.2587 0.9659 16.5616 -22.6551)" width="8.09" height="17.974"/>
+	<circle style="fill: white; fill-opacity:0.7"  cx="98.185" cy="37.264" r="4.045"/>
+	<path style="fill: white; fill-opacity:0.7"  d="M82.915,24.8l-9.304,34.725l15.409,4.128l-7.823,29.192h0.001l0,0H32.36V125.2h56.619V92.846h-3.594l7.541-28.145   l15.409,4.129l9.304-34.724L82.915,24.8z M106.785,66.145l-30.489-8.169l8.17-30.49l30.489,8.17L106.785,66.145z"/>
+</g>
+</svg>

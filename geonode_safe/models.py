@@ -1,6 +1,9 @@
 from __future__ import division
 from django.db import models
 from django.contrib.auth.models import User
+from pygments import highlight
+from pygments.lexers import PythonLexer
+from pygments.formatters import HtmlFormatter
 import datetime
 
 
@@ -29,6 +32,9 @@ class Calculation(models.Model):
 
     def get_absolute_url(self):
         return self.layer.get_absolute_url()
+
+    def pretty_function_source(self):
+        return highlight(self.impact_function_source, PythonLexer(), HtmlFormatter())
 
     def __unicode__(self):
         if self.success:

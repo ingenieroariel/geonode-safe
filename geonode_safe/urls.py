@@ -3,12 +3,11 @@ from django.conf.urls.defaults import patterns, url
 urlpatterns = patterns('',
                        url(r'^$',
                            'django.views.generic.simple.direct_to_template',
-                           {'template': 'geonode_safe/calculator.html'},
+                           {'template': 'geonode_safe/safe.html'},
                            name='calculator'))
 
 urlpatterns += patterns('geonode_safe.views',
-                       url(r'^api/calculate/$', 'calculate', name='safe-calculate'),
-                       url(r'^api/layers/$', 'layers', name='safe-layers'),
-                       url(r'^api/functions/$', 'functions', name='safe-functions'),
-                       url(r'^api/debug/$', 'debug', name='safe-debug'),
+                       url(r'^api/v1/calculate/$', 'calculate', name='safe-calculate'),
+                       url(r'^api/v1/questions/$', 'questions', name='safe-questions'),
+                       url(r'^api/v1/debug/$', 'debug', name='safe-debug'),
 )

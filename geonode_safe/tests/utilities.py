@@ -4,8 +4,8 @@ import numpy
 from django.conf import settings
 from urlparse import urljoin
 
-TESTDATA = '/data/inasafe_data/test'
-DEMODATA = '/data/inasafe_data/'
+TESTDATA = '/Users/x/work/inasafe_data/test'
+DEMODATA = '/Users/x/work/inasafe_data/'
 
 # Use the local GeoServer url inside GeoNode
 # The ows bit at the end if VERY important because

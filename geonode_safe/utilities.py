@@ -1,4 +1,4 @@
-"""Utilities for impact.storage
+"""Utilities for geonode_safe
 """
 
 import os
@@ -11,8 +11,7 @@ from osgeo import ogr
 from tempfile import mkstemp
 from urllib2 import urlopen
 from safe.api import read_layer
-from safe.impact_functions.core import requirements_collect
-from safe.impact_functions.core import requirements_met
+
 
 logger = logging.getLogger(__name__)
 
@@ -121,12 +120,7 @@ def write_keywords(keywords, filename):
         if v is None:
             fid.write('%s\n' % key)
         else:
-            msg = ('Keyword value must be a string. '
-                   'For key %s, I got %s with type %s'
-                   % (k, v, str(type(v))[1:-1]))
-            assert isinstance(v, basestring), msg
-
-            val = v.strip()
+            val = str(v).strip()
 
             msg = ('Value in keywords dictionary must be a string or None. '
                    'I got %s with type %s' % (val, type(val)))
@@ -391,13 +385,13 @@ def points_between_points(point1, point2, delta):
        u = (x1-x0, y1-y0)/L, where
        L=sqrt( (x1-x0)^2 + (y1-y0)^2).
        If r is the resolution, then the
-       points will be given by       
+       points will be given by
        (x0, y0) + u * n * r for n = 1, 2, ....
        while len(n*u*r) < L
     """
     x0, y0 = point1
     x1, y1 = point2
-    L = math.sqrt(math.pow((x1-x0),2) + math.pow((y1-y0), 2)) 
+    L = math.sqrt(math.pow((x1-x0),2) + math.pow((y1-y0), 2))
     pieces = int(L / delta)
     uu = numpy.array([x1 - x0, y1 -y0]) / L
     points = [point1]
@@ -457,6 +451,7 @@ def nanallclose(x, y, rtol=1.0e-5, atol=1.0e-8):
 
     # Compare non NaN's and return
     return numpy.allclose(x, y, rtol=rtol, atol=atol)
+
 
 def get_common_resolution(haz_metadata, exp_metadata):
     """Determine common resolution for raster layers
@@ -556,81 +551,6 @@ def get_bounding_boxes(haz_metadata, exp_metadata, req_bbox):
     exp_bbox = imp_bbox = intersection_bbox
 
     return haz_bbox, exp_bbox, imp_bbox
-
-
-def get_linked_layers(main_layers):
-    """Get list of layers that are required by main layers
-
-    Input
-       main_layers: List of layers of the form (server, layer_name,
-                                                bbox, metadata)
-    Output
-       new_layers: New layers flagged by the linked keywords in main layers
-
-
-    Algorithm will recursively pull layers from new layers if their
-    keyword linked exists and points to available layers.
-    """
-
-    # FIXME: I don't think the naming is very robust.
-    # Main layer names and workspaces come from the app, while
-    # we just use the basename from the keywords for the linked layers.
-    # Not sure if the basename will always work as layer name.
-
-    new_layers = []
-    for server, name, bbox, metadata in main_layers:
-
-        workspace, layername = name.split(':')
-
-        keywords = metadata['keywords']
-        if 'linked' in keywords:
-            basename, _ = os.path.splitext(keywords['linked'])
-
-            # FIXME (Ole): Geoserver converts names to lowercase @#!!
-            basename = basename.lower()
-
-            new_layer = '%s:%s' % (workspace, basename)
-            if new_layer == name:
-                msg = 'Layer %s linked to itself' % name
-                raise Exception(msg)
-
-            try:
-                new_metadata = get_metadata(server, new_layer)
-            except Exception, e:
-                msg = ('Linked layer %s could not be found: %s'
-                       % (basename, str(e)))
-                logger.info(msg)
-                #raise Exception(msg)
-            else:
-                new_layers.append((server, new_layer, bbox, new_metadata))
-
-    # Recursively search for linked layers required by the newly added layers
-    if len(new_layers) > 0:
-        new_layers += get_linked_layers(new_layers)
-
-    # Return list of new layers
-    return new_layers
-
-
-def compatible_layers(func, layer_descriptors):
-    """Fetches all the layers that match the plugin requirements.
-
-    Input
-        func: ? (FIXME(Ole): Ted, can you fill in here?
-        layer_descriptor: Layer names and meta data (keywords, type, etc)
-
-    Output:
-        Array of compatible layers, can be an empty list.
-    """
-
-    layers = []
-    requirements = requirements_collect(func)
-
-    for layer_name, layer_params in layer_descriptors:
-        if requirements_met(requirements, layer_params):
-            layers.append(layer_name)
-
-    return layers
 
 
 def check_bbox_string(bbox_string):

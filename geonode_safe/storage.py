@@ -91,8 +91,6 @@ def write_vector_data(data, projection, geometry, filename, keywords=None):
     V.write_to_file(filename)
 
 
-
-
 def get_geotransform(server_url, layer_name):
     """Constructs the geotransform based on the WCS service.
 
@@ -120,7 +118,6 @@ def get_metadata_from_layer(layer):
         layer: Layer object. It is assumed that it has the extra attribute
                data_type which is either raster or vector
     """
-
     # Create empty metadata dictionary
     metadata = {}
 
@@ -157,12 +154,16 @@ def get_metadata_from_layer(layer):
                     else:
                         keyword_dict[keyword_string] = None
 
-    # Add resolution (as a string with one element) so that layer "remembers"
-    # its original resolution,
+    # Add resolution so that layer "remembers" its original resolution,
     # FIXME (Ole): What is the best way of collapsing 2D resolution to
     # one number - resx and resy are not always identical!
     if metadata['resolution'] is not None:
-        keyword_dict['resolution'] = str(metadata['resolution'][0])
+        keyword_dict['resolution'] = round(metadata['resolution'][0], 5)
+
+    keyword_dict['layertype'] = layer.datatype
+
+    if 'title' in keyword_dict:
+        metadata['title'] = keyword_dict['title']
 
     # FIXME (Ole): The statement below does not raise an Exception,
     # and nothing is written to the log file. See issue #170
@@ -197,6 +198,9 @@ def get_metadata(server_url, layer_name=None):
     else:
         layer_names = [layer_name]
 
+    #FIXME(Ariel): This is a weak way of finding the geoserver_url
+    geoserver_url = server_url[:-4]
+
     # Get metadata for requested layer(s)
     metadata = {}
     for name in layer_names:
@@ -213,77 +217,19 @@ def get_metadata(server_url, layer_name=None):
                                            wcs.contents, wfs.contents))
             raise Exception(msg)
 
-        metadata[name] = get_metadata_from_layer(layer)
+        layer_metadata = get_metadata_from_layer(layer)
+
+        tile_url =  "%s/gwc/service/gmaps?layers=%s&zoom={z}&x={x}&y={y}&format=image/png" % (geoserver_url, name)
+        layer_metadata['server_url'] = server_url
+        layer_metadata['tile_url'] = tile_url
+
+        metadata[name] = layer_metadata
 
     # Return metadata for one or all layers
     if layer_name is not None:
         return metadata[layer_name]
     else:
         return metadata
-
-
-def get_layer_descriptors(url):
-    """Get layer information for use with the plugin system
-
-    The keywords are parsed and added to the metadata dictionary
-    if they conform to the format "identifier:value".
-
-    NOTE: Keywords will overwrite metadata with same keys. A notable
-          example is title which is currently in use.
-
-    Input
-        url: The wfs url
-        version: The version of the wfs xml expected
-
-    Output
-        A list of (lists of) dictionaries containing the metadata for
-        each layer of the following form:
-
-        [['geonode:lembang_schools',
-          {'layertype': 'vector',
-           'category': 'exposure',
-           'subcategory': 'building',
-           'title': 'lembang_schools'}],
-         ['geonode:shakemap_padang_20090930',
-          {'layertype': 'raster',
-           'category': 'hazard',
-           'subcategory': 'earthquake',
-           'title': 'shakemap_padang_20090930'}]]
-
-    """
-
-    # FIXME (Ole): I don't like the format, but it permeates right
-    #              through to the HTTPResponses in views.py, so
-    #              I am not sure if it can be changed. My problem is
-    #
-    #              1: A dictionary of metadata entries would be simpler
-    #              2: The keywords should have their own dictionary to avoid
-    #                 danger of keywords overwriting other metadata
-    #
-    #              I have raised this in ticket #126
-
-    # Get all metadata from owslib
-    metadata = get_metadata(url)
-
-    # Create exactly the same structure that was produced by the now obsolete
-    # get_layers_metadata. FIXME: However, this is subject to issue #126
-    x = []
-    for key in metadata:
-        # Get all metadata
-        md = metadata[key]
-
-        # Create new special purpose entry
-        block = {}
-        block['layertype'] = md['layertype']
-        block['title'] = md['title']
-
-        # Copy keyword data into this block possibly overwriting data
-        for kw in md['keywords']:
-            block[kw] = md['keywords'][kw]
-
-        x.append([key, block])
-
-    return x
 
 
 def get_file(download_url, suffix):
@@ -682,11 +628,10 @@ def save_file_to_geonode(filename, user=None, title=None,
         upload_filename = filename
 
     # Use file name or keywords to derive title if not specified
-    if title is None or title == '':
-        if kw_title is None:
-            title = os.path.split(basename)[-1]
-        else:
-            title = kw_title
+    if kw_title is None:
+        title = os.path.split(basename)[-1]
+    else:
+        title = kw_title
 
     # Attempt to upload the layer
     try:
@@ -702,6 +647,9 @@ def save_file_to_geonode(filename, user=None, title=None,
 
         if kw_table is not None:
             layer.supplemental_information = kw_table
+
+        if kw_title is not None:
+            layer.title = kw_title
 
         layer.save()
     except GeoNodeException, e:
@@ -778,7 +726,7 @@ def save_to_geonode(incoming, user=None, title=None,
         ___, short_filename = os.path.split(incoming)
         basename, extension = os.path.splitext(short_filename)
         filename = incoming
- 
+
         if extension in ['.tif', '.shp', '.zip', '.asc']:
             potential_files.append((basename, filename))
 

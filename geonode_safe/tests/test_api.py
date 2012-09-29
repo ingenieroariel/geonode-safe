@@ -28,6 +28,7 @@ from safe.impact_functions.core import requirements_met
 from safe.impact_functions.inundation.flood_OSM_building_impact import FloodBuildingImpactFunction
 
 from django.test.client import Client
+from django.test import LiveServerTestCase
 from django.conf import settings
 from django.utils import simplejson as json
 from django.core.urlresolvers import reverse
@@ -47,9 +48,11 @@ def lembang_damage_function(x):
     return value
 
 
-class TestApi(unittest.TestCase):
+class TestApi(LiveServerTestCase):
     """Tests of geonode-safe API
     """
+
+    fixtures = ['sample_admin.json']
 
     def setUp(self):
         """Create valid superuser
@@ -376,7 +379,7 @@ class TestApi(unittest.TestCase):
                        'an error' % bad_bbox)
             assert 'errors' in data_out, msg
 
-    @numpy.testing.dec.skipif(True, ' * Talk to Ole. Intergrid interpolation not yet implemented') 
+    @numpy.testing.dec.skipif(True, ' * Talk to Ole. Intergrid interpolation not yet implemented')
     def test_earthquake_exposure_plugin(self):
         """Population exposure to individual MMI levels can be computed
         """
@@ -683,7 +686,7 @@ class TestApi(unittest.TestCase):
         c = Client()
         functions_url = reverse('safe-functions')
         rv = c.get(functions_url)
- 
+
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rv['Content-Type'], 'application/json')
         data = json.loads(rv.content)

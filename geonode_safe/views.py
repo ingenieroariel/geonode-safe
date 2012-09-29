@@ -1,8 +1,8 @@
 """
-Risk in a Box HTTP API
+SAFE HTTP API
 
 All API calls start with:
- http://myriab.com/riab/api/v1
+ /safe/api/v1
 
  * Version: All API calls begin with API version.
  * Path: For this documentation, we will assume every
@@ -28,12 +28,11 @@ import inspect
 import datetime
 
 from geonode_safe.storage import download
-from geonode_safe.storage import get_metadata, get_layer_descriptors
+from geonode_safe.storage import get_metadata
 from geonode_safe.storage import save_file_to_geonode
 from geonode_safe.models import Calculation, Workspace
 from geonode_safe.utilities import bboxlist2string
 from geonode_safe.utilities import titelize
-from geonode_safe.utilities import compatible_layers
 from geonode_safe.utilities import get_common_resolution, get_bounding_boxes
 
 from safe.api import get_admissible_plugins
@@ -45,6 +44,7 @@ from django.utils import simplejson as json
 from django.http import HttpResponse
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import cache_page
 
 from urlparse import urljoin
 
@@ -56,6 +56,37 @@ def exception_format(e):
     import traceback
     info = ''.join(traceback.format_tb(sys.exc_info()[2]))
     return str(e) + '\n\n' + info
+
+
+def get_servers(user):
+    """ Gets the list of servers for a given user
+    """
+    if user.is_anonymous():
+        theuser = get_valid_user()
+    else:
+        theuser = user
+
+    servers = []
+
+    try:
+        workspace = Workspace.objects.get(user=theuser)
+        servers = workspace.servers.all()
+    except Workspace.DoesNotExist:
+        # It is okay to not load workspaces,
+        # the default geoserver is being defined below.
+        pass
+
+    geoservers = [{'url': settings.GEOSERVER_BASE_URL + 'ows',
+                   'name': 'Local Geoserver',
+                   'version': '1.0.0', 'id':0}]
+    for server in servers:
+        # TODO for the moment assume version 1.0.0
+        geoservers.append({'url': server.url,
+                           'name': server.name,
+                           'id': server.id,
+                           'version': '1.0.0'})
+
+    return geoservers
 
 
 @csrf_exempt
@@ -124,6 +155,7 @@ def calculate(request, save_output=save_file_to_geonode):
 
         # Record information calculation object and save it
         calculation.impact_function_source = impact_function_source
+
         calculation.bbox = bboxlist2string(imp_bbox)
         calculation.save()
 
@@ -187,6 +219,7 @@ def calculate(request, save_output=save_file_to_geonode):
 
     # json.dumps does not like django users
     output['user'] = calculation.user.username
+    output['pretty_function_source'] = calculation.pretty_function_source()
 
     links = result.link_set.all()
 
@@ -240,8 +273,9 @@ def debug(request):
     return HttpResponse(jsondata, mimetype='application/json')
 
 
-def functions(request):
-    """Get a list of all the functions
+@cache_page(60 * 15)
+def questions(request):
+    """Get a list of all the questions, layers and functions
 
        Will provide a list of plugin functions and the layers that
        the plugins will work with. Takes geoserver urls as a GET
@@ -251,125 +285,59 @@ def functions(request):
        assumes version 1.0.0
     """
 
-    plugin_list = get_admissible_plugins()
-
     if 'geoservers' in request.GET:
         # FIXME for the moment assume version 1.0.0
-        geolist = request.GET['geoservers'].split(',')
-        geoservers = [{'url': geoserver, 'version': '1.0.0'}
-                      for geoserver in geolist]
+        gs = request.GET['geoservers'].split(',')
+        geoservers = [{'url': g, 'version': '1.0.0'} for g in gs]
     else:
         geoservers = get_servers(request.user)
 
-    # Iterate across all available geoservers and return all
-    # layer descriptors for use with the plugin subsystem
-    layer_descriptors = []
+    layers = {}
+    functions = {}
+
     for geoserver in geoservers:
-        layer_descriptors.extend(
-            get_layer_descriptors(geoserver['url']))
+        layers.update(get_metadata(geoserver['url']))
 
-    # For each plugin return all layers that meet the requirements
-    # an empty layer is returned where the plugin cannot run
-    annotated_plugins = []
-    for name, f in plugin_list.items():
-        layers = compatible_layers(f, layer_descriptors)
+    admissible_plugins = get_admissible_plugins()
+    for name, f in admissible_plugins.items():
+        functions[name] = {'doc': f.__doc__,
+                            } 
+        for key in ['author', 'title', 'rating']:
+            if hasattr(f, key):
+                functions[name][key] = getattr(f, key)
 
-        annotated_plugins.append({'name': name,
-                                  'doc': f.__doc__,
-                                  'layers': layers})
+    output = {'layers': layers, 'functions': functions}
 
-    output = {'functions': annotated_plugins}
-    jsondata = json.dumps(output)
-    return HttpResponse(jsondata, mimetype='application/json')
+    hazards = []
+    exposures = []
 
+    # First get the list of all hazards and exposures
+    for name, params in layers.items():
+        keywords = params['keywords']
+        if 'category' in keywords:
+            if keywords['category'] == 'hazard':
+                hazards.append(name)
+            elif keywords['category'] == 'exposure':
+                exposures.append(name)
 
-def get_servers(user):
-    """ Gets the list of servers for a given user
-    """
-    if user.is_anonymous():
-        theuser = get_valid_user()
-    else:
-        theuser = user
+    questions = []
 
-    servers = []
+    # Then iterate over hazards and exposures to find 3-tuples of hazard, exposure and functions
+    for hazard in hazards:
+        for exposure in exposures:
+            hazard_keywords = layers[hazard]['keywords']
+            exposure_keywords = layers[exposure]['keywords']
+            
+            hazard_keywords['layertype'] = layers[hazard]['layertype']            
+            exposure_keywords['layertype'] = layers[exposure]['layertype']            
 
-    try:
-        workspace = Workspace.objects.get(user=theuser)
-        servers = workspace.servers.all()
-    except Workspace.DoesNotExist:
-        # It is okay to not load workspaces,
-        # the default geoserver is being defined below.
-        pass
+            keywords = [hazard_keywords, exposure_keywords]
+            plugins = get_admissible_plugins(keywords=keywords)
 
-    geoservers = [{'url': settings.GEOSERVER_BASE_URL + 'ows',
-                   'name': 'Local Geoserver',
-                   'version': '1.0.0', 'id':0}]
-    for server in servers:
-        # TODO for the moment assume version 1.0.0
-        geoservers.append({'url': server.url,
-                           'name': server.name,
-                           'id': server.id,
-                           'version': '1.0.0'})
+            for function in plugins:
+                questions.append({'hazard': hazard, 'exposure': exposure, 'function': function})
 
-    return geoservers
+    output['questions'] = questions
 
-
-def servers(request):
-    """ Get the list of all the servers registered for a given user.
-
-        If no user is passed, it will use a default one.
-    """
-    geoservers = get_servers(request.user)
-    output = {'servers': geoservers}
-    jsondata = json.dumps(output)
-    return HttpResponse(jsondata, mimetype='application/json')
-
-
-def layers(request):
-    """ Get the list of all layers annotated with metadata
-
-        If a parameter called 'category' is passed, it will be
-        used to filter the list.
-    """
-
-    # FIXME (Ole): Why does the word 'category' have a special meaning?
-    #              Someone, please revisit this code!
-
-    geoservers = get_servers(request.user)
-
-    if 'category' in request.REQUEST:
-        requested_category = request.REQUEST['category']
-    else:
-        requested_category = None
-
-    # Iterate across all available geoservers and all layer descriptors
-    layer_descriptors = []
-    for geoserver in geoservers:
-        ld = get_layer_descriptors(geoserver['url'])
-        for layer in ld:
-            out = {'name': layer[0],
-                   'title': titelize(layer[1]['title']),
-                   'server_url': geoserver['url']}
-            metadata = layer[1]
-            name_category = out['name'].split('_')
-            if 'category' in metadata.keys():
-                category = metadata['category']
-            elif len(name_category) > 1:
-                # FIXME: This is a temporary measure until we get the keywords:
-                # https://github.com/AIFDR/riab/issues/46
-                # If there is no metadata then try using format category_name
-                # FIXME (Ole): This section should definitely be cleaned up
-                # FIXME (Ole): CLEAN IT - NOW!!!
-                category = name_category[0]
-            else:
-                category = None
-
-            if requested_category is not None:
-                if requested_category == category:
-                    layer_descriptors.append(out)
-            else:
-                layer_descriptors.append(out)
-
-    output = {'objects': layer_descriptors}
     jsondata = json.dumps(output)
     return HttpResponse(jsondata, mimetype='application/json')
