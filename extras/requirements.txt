@@ -21,7 +21,7 @@ django-profiles==0.2
 django-rosetta==0.6.0
 django-staticfiles==0.3
 docutils==0.7
-httplib2==0.6.0
+httplib2==0.18.0
 logilab-astng==0.21.1
 logilab-common==0.55.0
 mock==0.7.0
