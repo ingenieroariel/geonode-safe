@@ -4,7 +4,7 @@
 -e svn+http://svn.gispython.org/svn/gispy/OWSLib/trunk/@1717#egg=OWSLib
 -e git+git://github.com/dwins/gsconfig.py.git#egg=gsconfig.py
 
-Django==1.3
+Django==2.2.24
 FormEncode==1.2.2
 Jinja2==2.5.5
 Paste==1.7.4
