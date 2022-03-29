@@ -33,7 +33,7 @@ python-openid==2.2.4
 scgi==1.13
 simplejson==2.1.3
 unittest2==0.5.1
-paramiko==1.7.6
+paramiko==2.10.1
 Fabric==1.2.0
 https://bitbucket.org/ubernostrum/django-registration/get/tip.zip
 
