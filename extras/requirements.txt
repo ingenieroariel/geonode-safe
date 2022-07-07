@@ -23,7 +23,7 @@ django-staticfiles==0.3
 docutils==0.7
 httplib2==0.6.0
 logilab-astng==0.21.1
-logilab-common==0.55.0
+logilab-common==0.61.0
 mock==0.7.0
 nose==0.11.1
 nose-cover3==0.0.7
